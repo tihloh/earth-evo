@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import {OrbitControls} from "three/addons/controls/OrbitControls.js";
 import {W,H} from "./simulation.js";
+import {configurePrecisionCamera,setCameraGlide} from "./camera-controls.js";
 
 export class PlanetView {
   constructor(canvas,viewport){
@@ -11,7 +12,7 @@ export class PlanetView {
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
     this.renderer.outputColorSpace=THREE.SRGBColorSpace;
     this.controls=new OrbitControls(this.camera,canvas);
-    this.controls.enablePan=false;this.controls.enableDamping=true;
+    configurePrecisionCamera(this.controls,"planet",2);
     this.controls.minDistance=3.3;this.controls.maxDistance=12;
     this.root=new THREE.Group();this.scene.add(this.root);
     this.scene.add(new THREE.AmbientLight(0xb1c8e4,1.55));
@@ -40,6 +41,7 @@ export class PlanetView {
     this.resize();
     this.previous=performance.now();this.running=true;this.frame=this.frame.bind(this);requestAnimationFrame(this.frame);
   }
+  setGlide(value){setCameraGlide(this.controls,value)}
   surfacePosition(lon,lat,radius=2.373){
     const phi=lat*Math.PI/180,theta=lon*Math.PI/180;
     // Three.js sphere uses the polar axis on Y.
@@ -144,7 +146,7 @@ export class PlanetView {
   frame(now){
     if(!this.running)return;
     const dt=Math.min(.08,(now-this.previous)/1000);this.previous=now;
-    this.root.rotation.y+=dt*.022;this.cloudLayer.rotation.y+=dt*.025;
+    // No idle drift: the Earth stays still when the user stops dragging.
     this.controls.update();this.renderer.render(this.scene,this.camera);
     requestAnimationFrame(this.frame);
   }
