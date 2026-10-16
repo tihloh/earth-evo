@@ -36,7 +36,7 @@ export function configurePrecisionCamera(controls, kind = "surface", glide = DEF
   controls.keyPanSpeed = 6;
   // Constrain panning and zoom-to-cursor focus, without preventing orbiting.
   controls.minTargetRadius = 0;
-  controls.maxTargetRadius = kind === "planet" ? .9 : 115;
+  controls.maxTargetRadius = kind === "planet" ? .9 : 10000;
   controls.cursor.set(0, 0, 0);
   return controls;
 }
