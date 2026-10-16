@@ -10,7 +10,7 @@ const view=new PlanetView($("globe"),$("globeViewport"));
 let playing=false,speed=12,accumulator=0,lastFrame=performance.now();
 let pendingSeek=null,seekFrame=false,rendering=false;
 let localActive=false,localView=null,localWorld=null,localEra=-1,localSeed=-1;
-let focus={lat:5,lon:10},inspectedId=null,lastLocalUi=0;
+let focus={lat:-20,lon:-55},inspectedId=null,lastLocalUi=0;
 const hudState={left:window.innerWidth>850,right:window.innerWidth>710};
 function setHud(side,opened){
   if(side!=="left"&&side!=="right")return;
@@ -24,6 +24,9 @@ setHud("left",hudState.left);
 setHud("right",hudState.right);
 $("toggleLeft").addEventListener("click",()=>setHud("left",!hudState.left));
 $("toggleRight").addEventListener("click",()=>setHud("right",!hudState.right));
+$("renderDistance").addEventListener("change",e=>{
+  if(localView)localView.setRenderDistance(Number(e.target.value));
+});
 $("cameraGlide").addEventListener("change",e=>{
   const value=Number(e.target.value);
   view.setGlide(value);
@@ -33,9 +36,10 @@ $("cameraGlide").addEventListener("change",e=>{
 function createSurface(force=false){
   if(!localActive)return;
   const era=eraAt(world.tick).t;
-  if(force||!localWorld||era!==localEra||localSeed!==world.seed){
+  if(force||!localWorld||era!==localEra||localSeed!==world.seed||
+    localWorld.seaShift!==world.seaShift){
     localEra=era;localSeed=world.seed;
-    localWorld=new SurfaceWorld(world.seed,world.tick,focus.lat,focus.lon);
+    localWorld=new SurfaceWorld(world.seed,world.tick,focus.lat,focus.lon,world.seaShift);
     inspectedId=null;
     if(localView)localView.setWorld(localWorld);
   }
@@ -55,6 +59,7 @@ function enterSurface(){
   });
   localView.visible=true;localView.speed=Number($("localSpeed").value);
   localView.setGlide(Number($("cameraGlide").value));
+  localView.setRenderDistance(Number($("renderDistance").value));
   localView.resize();
   setHud("left",false);
   setHud("right",true);
@@ -80,6 +85,12 @@ function showInspection(agent){
 function updateLocalUi(force=false){
   if(!localActive||!localWorld||(!force&&performance.now()-lastLocalUi<450))return;
   lastLocalUi=performance.now();
+  if(localView){
+    const target=localView.controls.target;
+    const p=localWorld.sample(target.x,target.z);
+    $("localLabel").textContent="Open world · "+p.lat.toFixed(3)+"°, "+
+      p.lon.toFixed(3)+"° · "+p.biome+" · "+localView.terrainChunks.size+" tiles";
+  }
   const counts=localWorld.counts;
   $("localHumans").textContent=counts.human;$("localGrazers").textContent=counts.grazer;
   $("localPredators").textContent=counts.predator;$("localBirds").textContent=counts.bird;
