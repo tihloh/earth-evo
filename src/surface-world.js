@@ -300,6 +300,43 @@ export class SurfaceWorld {
       }else this.log("Shelters require the civilization era and dry land");
     }
   }
+  toJSON(){
+    return {version:1,seed:this.seed,era:this.era,lat:this.lat,lon:this.lon,
+      rng:this.rng.value,time:this.time,elapsed:this.elapsed,nextId:this.nextId,
+      trees:this.trees.map(t=>({...t})),agents:this.agents.map(a=>({
+        ...a,personality:{...a.personality},memory:{...a.memory},
+        skill:{...a.skill},target:a.target?{...a.target}:null
+      })),structures:this.structures.map(s=>({...s})),
+      events:this.events.map(e=>({...e})),village:{...this.village},
+      rain:this.rain,fertility:this.fertility,lastBirth:this.lastBirth,lastSeed:this.lastSeed};
+  }
+  static fromJSON(save){
+    if(!save||save.version!==1||!Number.isInteger(save.seed)||save.seed<0||
+      !Number.isFinite(save.era)||save.era<0||save.era>1600||
+      !Number.isFinite(save.lat)||Math.abs(save.lat)>90||
+      !Number.isFinite(save.lon)||Math.abs(save.lon)>180||
+      !Array.isArray(save.agents)||save.agents.length>200||
+      !Array.isArray(save.trees)||save.trees.length>600||
+      !Array.isArray(save.structures)||save.structures.length>50||
+      !Number.isFinite(save.time)||save.time<0||save.time>1e8||
+      !Number.isFinite(save.nextId)||save.nextId<1||save.nextId>1000000||
+      !Number.isFinite(save.rng))throw Error("Invalid regional save data");
+    for(const entry of [...save.agents,...save.trees,...save.structures]){
+      if(!Number.isFinite(entry.x)||!Number.isFinite(entry.z)||
+        Math.abs(entry.x)>90||Math.abs(entry.z)>90||
+        !Number.isInteger(entry.id)||entry.id<1)throw Error("Invalid saved creature or object");
+    }
+    const w=new SurfaceWorld(save.seed,save.era,save.lat,save.lon);
+    w.rng.value=save.rng;w.time=save.time;w.elapsed=save.elapsed||0;w.nextId=save.nextId;
+    w.agents=save.agents.map(a=>({...a,personality:{...a.personality},
+      memory:{...a.memory},skill:{...a.skill},target:a.target?{...a.target}:null}));
+    w.trees=save.trees.map(t=>({...t}));w.structures=save.structures.map(s=>({...s}));
+    w.events=Array.isArray(save.events)?save.events.slice(0,25).map(e=>({...e})):[];
+    w.village={...save.village};
+    w.rain=Number(save.rain)||0;w.fertility=Number(save.fertility)||1;
+    w.lastBirth=Number(save.lastBirth)||0;w.lastSeed=Number(save.lastSeed)||0;
+    return w;
+  }
   get counts(){
     return TYPES.reduce((out,type)=>(out[type]=this.agents.filter(a=>a.active&&a.type===type).length,out),{});
   }
