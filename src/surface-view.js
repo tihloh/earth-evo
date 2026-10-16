@@ -13,6 +13,7 @@ import {returnPlanetAt} from "./zoom-transition.js";
 import {tileSegments} from "./zoom-continuum.js";
 import {buildHorizonTerrain} from "./horizon-terrain.js";
 import {createOceanSurface,updateOceanSurface} from "./water-view.js";
+import {waterSignal,waterSurfaceHeight,clipWaterTriangle} from "./water-geometry.js";
 
 const color=(hex)=>new THREE.MeshStandardMaterial({color:hex,roughness:1,flatShading:true});
 const m={trunk:color(0x65452e),leaf:color(0x4c9860),leaf2:color(0x60ac64),
@@ -234,33 +235,26 @@ export class SurfaceView{
     return mesh;
   }
   makeFreshwaterTile(cx,cz,segments=32){
-    // Low-overdraw local mesh for rivers, streams, wetlands and inland lakes.
-    // Ocean water remains a single flat, cheap surface under each terrain tile.
-    const size=STREAM_CHUNK_SIZE,n=segments>=32?32:segments>=16?16:8;
-    const left=cx*size,top=cz*size,positions=[],indices=[];
-    function addTriangle(points){
-      const base=positions.length/3;
-      for(const p of points)positions.push(p.x,p.y,p.z);
-      indices.push(base,base+1,base+2);
+    // March triangles around actual river/lake boundaries rather than drawing
+    // every grid cell containing a center water sample as an entire square.
+    const size=STREAM_CHUNK_SIZE,n=segments>=64?48:segments>=32?32:
+      segments>=16?16:8;
+    const left=cx*size,top=cz*size,vertices=[];
+    const samples=new Array((n+1)*(n+1));
+    for(let iz=0;iz<=n;iz++)for(let ix=0;ix<=n;ix++){
+      const x=left+ix*size/n,z=top+iz*size/n,s=this.world.sample(x,z);
+      samples[iz*(n+1)+ix]={x,z,y:waterSurfaceHeight(s),w:waterSignal(s)};
     }
     for(let iz=0;iz<n;iz++)for(let ix=0;ix<n;ix++){
-      const x=left+ix*size/n,z=top+iz*size/n,step=size/n;
-      const sample=this.world.sample(x+step*.5,z+step*.5);
-      if(!sample.river&&sample.waterKind!=="lake")continue;
-      const height=(xx,zz)=>{
-        const s=this.world.sample(xx,zz);
-        // Lake water is level across its basin; stream water follows river grade.
-        return sample.waterKind==="lake"?.048*28+.06:s.height+.12;
-      };
-      const p0={x,y:height(x,z),z},p1={x:x+step,y:height(x+step,z),z},
-        p2={x,y:height(x,z+step),z:z+step},
-        p3={x:x+step,y:height(x+step,z+step),z:z+step};
-      addTriangle([p0,p2,p1]);addTriangle([p1,p2,p3]);
+      const a=samples[iz*(n+1)+ix],b=samples[iz*(n+1)+ix+1],
+        d=samples[(iz+1)*(n+1)+ix],e=samples[(iz+1)*(n+1)+ix+1];
+      for(const p of clipWaterTriangle(a,d,b))vertices.push(p.x,p.y,p.z);
+      for(const p of clipWaterTriangle(b,d,e))vertices.push(p.x,p.y,p.z);
     }
-    if(!indices.length)return null;
+    if(!vertices.length)return null;
     const geometry=new THREE.BufferGeometry();
-    geometry.setAttribute("position",new THREE.Float32BufferAttribute(positions,3));
-    geometry.setIndex(indices);geometry.computeVertexNormals();
+    geometry.setAttribute("position",new THREE.Float32BufferAttribute(vertices,3));
+    geometry.computeVertexNormals();
     const mesh=new THREE.Mesh(geometry,m.river);
     mesh.userData.sharedMaterial=true;
     mesh.renderOrder=1;return mesh;
