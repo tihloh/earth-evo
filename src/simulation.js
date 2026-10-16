@@ -68,8 +68,8 @@ function createWorld(seed){
   });
 }
 const TYPES=["microbe","plant","grazer","predator","hominin"];
-const RATES={microbe:.29,plant:.21,grazer:.145,predator:.115,hominin:.095};
-const CAPS={microbe:40,plant:23,grazer:12,predator:5,hominin:3.2};
+const RATES={microbe:.29,plant:.21,grazer:.145,predator:.115,hominin:.21};
+const CAPS={microbe:40,plant:23,grazer:12,predator:5,hominin:9};
 const FOOD={microbe:null,plant:null,grazer:"plant",predator:"grazer",hominin:"plant"};
 function copySpecies(s){return {...s,genome:{...s.genome},pop:Float32Array.from(s.pop)}}
 export class World{
@@ -169,7 +169,8 @@ export class World{
         const cell=this.cells[i],fit=this.fitness(s,cell);
         if(fit<=0)continue;
         let food=1;
-        if(FOOD[s.type])food=clamp(sums[FOOD[s.type]][i]/(s.type==="predator"?4:7),.03,1.25);
+        if(s.type==="hominin")food=clamp(.55+sums.plant[i]/11+sums.grazer[i]/17,.55,1.25);
+        else if(FOOD[s.type])food=clamp(sums[FOOD[s.type]][i]/(s.type==="predator"?4:7),.03,1.25);
         else if(s.type==="plant")food=cell.fertility;
         const scarcity=clamp(1-sums[s.type][i]/(capacity*fit+1),-1,1);
         const pred=s.type==="grazer"?sums.predator[i]*.015:s.type==="plant"?sums.grazer[i]*.003:0;
@@ -240,7 +241,7 @@ export class World{
   intervene(kind){
     if(!["impact","volcano","warm","cool","sea","seaDown"].includes(kind))return false;
     this.interventions.push({tick:this.tick,kind});
-    this._effects(kind);this._cache.clear();this._saveSnapshot();
+    this._effects(kind);for(const t of this._cache.keys())if(t>=this.tick)this._cache.delete(t);this._saveSnapshot();
     return true;
   }
   _step(){
@@ -263,7 +264,7 @@ export class World{
       totals:{...this.totals},events:this.events.map(e=>({...e})),eventId:this.eventId,
       history:this.history.map(h=>({...h}))
     });
-    if(this._cache.size>38)this._cache.delete(this._cache.keys().next().value);
+    if(this._cache.size>38){const oldest=[...this._cache.keys()].find(t=>t!==0);if(oldest!==undefined)this._cache.delete(oldest);}
   }
   _restore(tick,s){
     this.tick=tick;this.rng.value=s.rng;this.nextSpecies=s.nextSpecies;this.species=s.species.map(copySpecies);
