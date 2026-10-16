@@ -40,7 +40,18 @@ function elevationRaw(lat,lon,seed){
                         Math.cos(Z*79-X*40+Y*62)+
     .055*Math.sin(X*210-Y*133+Z*71)*Math.sin(Z*151+Y*171)+
     .027*Math.cos(X*490+Z*388-Y*279)*Math.sin(Y*450+X*240);
-  return coarse+detail;
+  // Continuous mountain-building belts and narrow ridges. Sampling in spherical XYZ
+  // keeps the mountain topology identical on the globe and ground, including at ±180°.
+  const belt=Math.max(0,Math.sin(X*10.2+Z*6.5+seed*.004)*
+    Math.cos(Y*8.7-X*3.9)-.12);
+  const crest=Math.pow(1-Math.abs(Math.sin(X*96+Y*63-Z*79+seed*.01)),3);
+  const uplift=.95*Math.pow(belt,1.2)*(.33+.67*crest);
+  // Broad highland shoulders and dry incision; both are geographic elevation,
+  // not separate decorative mountains that would diverge on the globe.
+  const shoulder=.19*Math.max(0,Math.sin(X*36+Y*17+Z*25+seed*.02))*
+    Math.max(0,belt-.10);
+  const canyon=.10*Math.max(0,Math.cos(X*82-Z*73+Y*29))*Math.max(0,belt-.33);
+  return coarse+detail+uplift+shoulder-canyon;
 }
 export function sampleGeography(lat,lon,seed=42,seaShift=0){
   lat=clamp(lat,-90,90);lon=wrapLongitude(lon);
@@ -66,7 +77,7 @@ export function sampleGeography(lat,lon,seed=42,seaShift=0){
   const channel=Math.abs(Math.sin(x*92+y*57-z*24+seed*.002) +
     .24*Math.sin(z*38-y*19+x*44));
   const river=land&&moisture>.45&&height<8&&channel<.075;
-  const alpine=height>8;
+  const alpine=height>10;
   const ice=latitude>74||temperature<-8;
   const wet=moisture>.65;
   const biome=!land?waterKind:river?"river":ice?"ice":alpine?"alpine":
