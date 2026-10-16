@@ -65,14 +65,16 @@ function human(a){
   root.userData={legs,arms,body};
   return root;
 }
+// Local +Z is the creature's forward axis. The torso, neck, head and legs
+// all follow that axis; SurfaceWorld.move uses atan2(dx,dz) to face +Z forward.
 function quadruped(a){
   const predator=a.type==="predator",root=new THREE.Group();
   const coat=predator?(a.id%3===0?0xb27d4a:0x94684e):(a.id%3===0?0xcdb287:0xb8a181);
   const back=predator?0x73523e:0x92795e,cream=predator?0xe6cbb1:0xe4d8bb;
   const body=new THREE.Group();root.add(body);
-  mesh(body,"head",coat,0,1.22,0,.95,.50,.53);
-  mesh(body,"head",back,0,1.46,-.08,.68,.24,.45);
-  mesh(body,"head",cream,0,.93,.29,.55,.16,.38);
+  mesh(body,"head",coat,0,1.22,0,.56,.50,1.00);
+  mesh(body,"head",back,0,1.46,-.08,.45,.24,.80);
+  mesh(body,"head",cream,0,.93,.29,.40,.16,.66);
   const neck=mesh(body,"tapered",coat,0,1.48,.67,.40,.74,.39,-.14);
   const head=new THREE.Group();head.position.set(0,1.83,.85);body.add(head);
   mesh(head,"head",coat,0,0,.15,.47,.43,.49);
@@ -92,7 +94,7 @@ function quadruped(a){
     }
   }
   const legs=[];
-  for(const xx of [-.60,.60])for(const zz of [-.32,.34]){
+  for(const xx of [-.35,.35])for(const zz of [-.62,.58]){
     const leg=new THREE.Group();leg.position.set(xx,1.02,zz);body.add(leg);
     mesh(leg,"tapered",coat,0,-.35,0,.20,.69,.20);
     mesh(leg,"box",predator?0x534638:0x49453f,0,-.75,.10,.23,.15,.32);
@@ -108,7 +110,7 @@ function bird(a){
   const root=new THREE.Group(),body=new THREE.Group();root.add(body);
   const plumage=[0xd7c2a0,0xb6b5c2,0x9a9e75,0xc5a2a1][a.id%4];
   const wingColor=[0xa5a1a7,0x797d93,0x777d5b,0xad7a77][a.id%4];
-  mesh(body,"head",plumage,0,.33,0,.48,.31,.67);
+  mesh(body,"head",plumage,0,.33,0,.40,.34,.73);
   mesh(body,"head",plumage,0,.58,.45,.29,.31,.26);
   mesh(body,"cone",0xc99541,0,.53,.77,.19,.40,.18,0,Math.PI/2);
   for(const side of [-1,1])mesh(body,"eye",0x222222,side*.22,.67,.60,.056,.057,.045);
