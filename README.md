@@ -1,76 +1,103 @@
 # Earth Evo 🌍
+### A web-based 3D Earth evolution & civilization sandbox
 
-**Earth Evo** is an experimental browser-based 3D Earth history and civilization project: starting with a young molten Earth, following life's emergence and biological diversification, then human settlement, civilization, and possible futures.
+**Earth Evo** is an interactive simulation prototype that follows a fictionalized, science-inspired Earth from planetary formation (~4.54 billion years ago), through the emergence and diversification of life, to human settlements and hypothetical futures.
 
-## Status
+**Current status: v0.2 — interactive simulated sandbox.** It is a working, fully navigable 3D demonstration with deterministic ecological populations and a simplified civilization system. It is **not** a physically accurate 4.54-billion-year reconstruction, a full Darwinian genetics simulator, or a Civilization-scale strategy game.
 
-**v0.1 — interactive visualization prototype.** The current application illustrates 15 broad historical milestones on a procedural 3D planet. It is **not yet** a biological or civilization simulation: life indicators and historical transitions are stage-driven. Dates and planetary conditions are simplified; future scenarios are speculative.
+## Run it
 
-## Run locally
+**You don't need to install a JavaScript framework or database.**
 
-No build step or backend is required.
+Clone:
 
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/tihloh/earth-evo.git
-   cd earth-evo
-   ```
-2. Start a static server:
-   ```bash
-   python -m http.server 8000
-   ```
-3. Open [http://localhost:8000](http://localhost:8000) in a modern WebGL-capable browser.
+\`\`\`bash
+git clone https://github.com/tihloh/earth-evo.git
+cd earth-evo
+\`\`\`
 
-The browser needs an internet connection for Three.js from its pinned CDN.
+Start a local static server with Python:
+
+\`\`\`bash
+python -m http.server 8000
+\`\`\`
+
+Open **http://localhost:8000** in a current WebGL-enabled browser. Internet connectivity is required for the pinned Three.js import-map modules downloaded from jsDelivr.
+
+To use Node's built-in simulation tests, with Node 22+ installed:
+
+\`\`\`bash
+npm test
+\`\`\`
+
+If you want the app hosted as a static website, this project can also be served via GitHub Pages: Repository **Settings → Pages → Build and deployment → Deploy from branch → main → /(root)**. Pages must be enabled by someone who can edit the repository settings.
 
 ## Controls
 
-- **Drag** the globe to orbit; **scroll** to zoom.
-- Use the **timeline** to scrub between early Earth and a hypothetical future.
-- **Previous / Next** jump between milestones.
-- **Play / Pause** and the **speed** selector control progression.
+- **General timeline scrollbar:** Drag the large bar at the bottom **both forward and backward** from 4.54 billion years ago through a hypothetical 2200 CE. **The simulation state** rewinds/restores, not only the displayed date.
+- **Milestone marks:** Click any marker to jump to an important period.
+- **Start / Future:** Jump to either end of the timeline.
+- **−1 / +1:** Step time forward or backward by one *simulation tick* (ticks represent different spans of actual geological time).
+- **‹ Era / Era ›:** Jump directly between major geological or cultural eras.
+- **Play / Pause:** Advance simulated time automatically.
+- **Speed:** Select slow, normal, fast or very fast playback.
+- **3D globe:** Drag to rotate and scroll to zoom. Colored dots represent **aggregated** biological abundance, and gold dots represent settlements, not individual organisms.
+- **Change the world:** Raise/lower global climate, change sea level, trigger volcanic eruptions or asteroid impacts.
+- **Seed / Reset:** Generate a reproducible alternative planet.
+- **Save / Load:** Download a JSON replay recipe and restore it later. Saves include the seed, time and intervention history. No backend account is needed.
 
-## Development principles
+### Simulation layers
 
-1. **Simulation core independent of rendering:** time-stepped deterministic world state with seedable random numbers.
-2. **Emergent behavior over scripted milestones:** ecological interactions, reproduction, inherited traits, selection, speciation and extinction.
-3. **Multi-scale design:** planetary climate and biome grid, regional populations, and local agents; aggregate populations at planetary scale.
-4. **Reproducibility:** stable seeds, tests, snapshots, and save/load.
-5. **Browser performance:** Web Workers for heavy simulation, typed arrays, instancing/LOD for rendering.
-6. **Scientific transparency:** separate evidence-informed settings from hypothetical or gameplay mechanisms.
+1. **Planet:** Procedural sea/land terrain, latitude-based climate, moisture, fertility, oceans and interventions.
+2. **Biology:** Aggregate microbial, plant, grazer, predator and hominin populations; environmental fitness, food supply, local carrying capacity, diffusion/migration, extinction and occasional inherited-trait lineage branching.
+3. **Civilization:** Hominin-dependent settlement founding, population, farming/resource stocks and a shared technology index. Human societies evolve differently across seeds and interventions.
 
-## Proposed roadmap
+### Honest limitations
 
-- [x] Phase 0: Interactive 3D globe, timeline, era information, symbolic life markers.
-- [ ] Phase 1: Fixed-step simulation engine, seed, independent state, pause/resume and save/load.
-- [ ] Phase 2: Regional terrain, temperature, moisture, water and resources.
-- [ ] Phase 3: Self-replicating organisms, inheritable traits, mutation, death and selection.
-- [ ] Phase 4: Ecosystem food webs, migration, speciation and extinction.
-- [ ] Phase 5: Hominin populations, culture, settlements, farming and demographic dynamics.
-- [ ] Phase 6: Cities, technologies, trade, diplomacy, disasters and alternate futures.
+- First appearances of major biological guilds are *milestone-gated* based loosely on history. Life's real origin is scientifically unresolved. **Natural selection and speciation are approximated; complex anatomical evolution is not modeled.**
+- Individual creatures, dinosaurs, humans and buildings are **not rendered**. Planetary-scale abundance is shown by colored dots, and settlements by golden points.
+- Populations and temperature/oxygen indicators are conceptual units, **not official paleoenvironmental or demographic statistics**.
+- Planet generation is procedural rather than a true reconstruction of historical continental drift.
+- Time is *nonlinear*: 1 tick near Earth's formation covers vastly more real years than 1 tick near the present.
+- Future states are speculative; they are not predictions.
+- Large-scale multi-agent behavior, detailed society, cities, trade, diplomacy and interplanetary travel are **future work**.
 
-## Suggested future structure
+### Project structure
 
-```text
+\`\`\`text
+index.html               Browser application
 src/
-  core/           # deterministic simulation loop, state, events and RNG
-  planet/         # geometry, terrain, biomes and climate
-  biology/        # organisms, populations, genetics and food webs
-  civilization/   # social groups, settlements, technology and economy
-  rendering/      # Three.js scenes, LOD and camera
-  ui/             # controls, charts, inspection
+  app.js                 UI, timeline and controls
+  simulation.js          Reproducible world/ecosystem/civilization core
+  renderer.js            Three.js globe and markers
+  styles.css             Responsive theme and timeline
 tests/
+  simulation.test.js     Node tests for rewind/replay, seeds and interventions
 docs/
-```
+  ARCHITECTURE.md        Long-term engine plan
+.github/workflows/
+  test.yml               Automated simulation test workflow
+\`\`\`
 
-Keep the initial prototype small while validating the simulation rules before adopting a more complex app framework.
+### Roadmap
 
-## Stack
+- [x] 3D globe, era labels and configurable playback
+- [x] **General timeline scrollbar** with past/future seeking and era shortcuts
+- [x] Deterministic world engine, seeded populations and time-state rewind
+- [x] Simplified ecosystems, inherited trait variation and ecological extinction
+- [x] Simplified settlement and technology dynamics
+- [x] Climate/impact intervention controls, save/load, automated tests
+- [ ] Biological agents with richer genetics, organisms, anatomies and life cycles
+- [ ] Continental movement, plate tectonics and higher fidelity climate
+- [ ] 3D visual ecosystems: plants, animals, cities and infrastructure
+- [ ] Detailed human civilizations, trade, conflict, governments and technologies
+- [ ] Space-age civilizations and long-term multi-planet simulations
+- [ ] Scalable worker-based simulation with spatial LOD and persistent databases
 
-- JavaScript + WebGL
-- [Three.js](https://threejs.org/) for 3D rendering
-- Static HTML/CSS; currently no npm dependencies or server
+## Technical design
 
-## Scientific note
+The simulation is in a standalone ES module without browser or Three.js dependencies. The renderer consumes world state independently. Reproducible seeds, cached snapshots, discrete simulation ticks and an intervention log make reversible navigation practical. Testing uses Node's native test runner; browser rendering uses Three.js 0.186.1 from a pinned CDN version.
 
-Life's origin is still an unresolved research question. Future self-replicating agents will use an explicitly **hypothetical computational origin-of-life model**, not claim to recreate the actual origin of terrestrial life. Simulating 4.5 billion years with every individual organism is computationally infeasible; this project must use different levels of abstraction as needed.
+## License
+
+No license has been selected yet. All rights reserved by default until a license is added.
