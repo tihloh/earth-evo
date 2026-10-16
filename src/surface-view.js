@@ -14,7 +14,7 @@ export class SurfaceView{
   constructor(canvas,viewport,world,{onSelect=()=>{},onExit=()=>{},onAction=()=>{}}={}){
     this.canvas=canvas;this.viewport=viewport;this.world=world;
     this.onSelect=onSelect;this.onExit=onExit;this.onAction=onAction;this.action="inspect";
-    this.scene=new THREE.Scene();this.scene.background=new THREE.Color(0xa1c7e4);
+    this.scene=new THREE.Scene();this.scene.background=new THREE.Color(world.era<120?0x684c43:0xa1c7e4);
     this.scene.fog=new THREE.FogExp2(0xa1c7e4,.005);
     this.camera=new THREE.PerspectiveCamera(55,1,.1,380);
     this.camera.position.set(47,64,85);
@@ -67,6 +67,7 @@ export class SurfaceView{
   buildTerrain(){
     const n=130,positions=[],colors=[],indices=[];
     const deep=new THREE.Color(0x526e46),grass=new THREE.Color(0x7fa360),rock=new THREE.Color(0x8b8d82),snow=new THREE.Color(0xd6dbd9);
+    const volcanic=this.world.era<120,sterile=this.world.era<870;
     for(let z=0;z<=n;z++){
       const pz=(z/n-.5)*REGION_SIZE;
       for(let x=0;x<=n;x++){
@@ -78,6 +79,9 @@ export class SurfaceView{
         else if(h>6)c.copy(rock);
         else if(h>2)c.lerp(rock,Math.min(.65,(h-2)/13));
         if(Math.sin(px*.18+pz*.25)>.6)c.lerp(deep,.22);
+        if(sterile)c=new THREE.Color(volcanic?0x8d4637:0x957e60).lerp(rock,
+          Math.min(.85,Math.max(.05,h/18)));
+        if(volcanic&&h<-1)c.setHex(0xe77336);
         colors.push(c.r,c.g,c.b);
       }
     }
@@ -90,6 +94,7 @@ export class SurfaceView{
     mesh.receiveShadow=true;this.worldRoot.add(mesh);this.terrain=mesh;
   }
   buildWater(){
+    if(this.world.era<120)return;
     const plane=new THREE.Mesh(new THREE.PlaneGeometry(REGION_SIZE,REGION_SIZE),m.water);
     plane.rotation.x=-Math.PI/2;plane.position.y=-5.3;this.worldRoot.add(plane);
     const positions=[],indices=[],segments=200,width=3.5;
@@ -251,7 +256,7 @@ export class SurfaceView{
     }
     if(this.weatherFlash>0){this.weatherFlash=Math.max(0,this.weatherFlash-dt);
       this.scene.background.setHex(this.weatherFlash>.18?0xdfefff:0xa1c7e4)}
-    else this.scene.background.setHex(this.world.rain>0?0x819bab:0xa1c7e4);
+    else this.scene.background.setHex(this.world.era<120?0x684c43:(this.world.rain>0?0x819bab:0xa1c7e4));
     for(const a of this.world.agents){
       if(!a.active)continue;
       const obj=this.characters.get(a.id);if(!obj)continue;
