@@ -12,6 +12,7 @@ import {createLandformLandmarks} from "./landform-view.js";
 import {returnPlanetAt} from "./zoom-transition.js";
 import {tileSegments} from "./zoom-continuum.js";
 import {buildHorizonTerrain} from "./horizon-terrain.js";
+import {createOceanSurface,updateOceanSurface} from "./water-view.js";
 
 const color=(hex)=>new THREE.MeshStandardMaterial({color:hex,roughness:1,flatShading:true});
 const m={trunk:color(0x65452e),leaf:color(0x4c9860),leaf2:color(0x60ac64),
@@ -52,6 +53,7 @@ export class SurfaceView{
     this.terrain=null;this.river=null;this.pointerDown=null;this.interactTargets=[];
     this.terrainChunks=new Map();this.terrainMeshes=[];
     this.waterChunks=new Map();this.landmarkChunks=new Map();this.renderRadius=3;
+    this.ocean=null;
     this.horizonMesh=null;this.horizonCenter=null;
     this.fogDetailRadius=1;this.lastTileUpdate=0;this.chunkCenter="";
     this.skyColor=new THREE.Color(0xa1c7e4);this.precipitation=null;
@@ -181,6 +183,8 @@ export class SurfaceView{
     this.terrainChunks.clear();this.waterChunks.clear();this.landmarkChunks.clear();
     this.horizonMesh=null;this.horizonCenter=null;
     this.terrainMeshes=[];
+    this.ocean=this.world.era>=120?createOceanSurface():null;
+    if(this.ocean)this.worldRoot.add(this.ocean);
     this.streamer=new OpenWorldStreamer(this.world);
     this.streamer.update(this.controls.target.x,this.controls.target.z);
     this.buildTerrain();this.buildTrees();
@@ -317,17 +321,13 @@ export class SurfaceView{
         }
       }
       if(this.world.era>=120){
-        const center=this.world.sample((t.xx+.5)*size,(t.zz+.5)*size);
-        const waterMaterial=center.waterKind==="lagoon"?m.lagoon:
-          center.waterKind==="ocean"?m.deep:m.water;
-        const ocean=new THREE.Mesh(new THREE.PlaneGeometry(size,size),waterMaterial);
-        ocean.rotation.x=-Math.PI/2;
-        ocean.position.set((t.xx+.5)*size,0,(t.zz+.5)*size);
-        ocean.userData.sharedMaterial=true;
+        // Sea level comes from ONE world-spanning plane. Only streams and lakes
+        // need local surface polygons. No transparent ocean rectangles per tile.
         const fresh=this.makeFreshwaterTile(t.xx,t.zz,t.segments);
-        const pieces=fresh?[ocean,fresh]:[ocean];
-        for(const water of pieces)this.worldRoot.add(water);
-        this.waterChunks.set(key,pieces);
+        if(fresh){
+          this.worldRoot.add(fresh);
+          this.waterChunks.set(key,[fresh]);
+        }
       }
     }
     this.terrainMeshes=[...this.terrainChunks.values()];
@@ -498,6 +498,7 @@ export class SurfaceView{
     }
     if(this.weatherFlash>0)this.weatherFlash=Math.max(0,this.weatherFlash-dt);
     this.updateAtmosphere(dt);
+    updateOceanSurface(this.ocean,this.controls.target,now*.001);
     for(const a of this.world.agents){
       if(!a.active)continue;
       const obj=this.characters.get(a.id);if(!obj)continue;
