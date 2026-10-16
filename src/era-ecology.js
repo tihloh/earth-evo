@@ -109,7 +109,8 @@ const climates=Object.freeze({
 });
 export function permitted(def,era,g){
  if(!def||era<def.min||era>=def.max)return false;
- if(def.habitat==="water")return !g.land;
+ if(["water","openWater","oceanDeep","shelf"].includes(def.habitat))
+   return (climates[def.habitat]||climates.water)(g);
  if(!g.land)return false;
  return (climates[def.habitat]||climates.land)(g);
 }
