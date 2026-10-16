@@ -1,0 +1,46 @@
+name: Browser Zoom Smoke
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'index.html'
+      - 'tests/browser-zoom.mjs'
+      - '.github/workflows/browser-smoke.yml'
+  pull_request:
+    paths:
+      - 'src/**'
+      - 'index.html'
+      - 'tests/browser-zoom.mjs'
+      - '.github/workflows/browser-smoke.yml'
+jobs:
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save playwright@1.56.1
+      - run: npx playwright install chromium --with-deps
+      - name: Serve local app
+        run: |
+          python3 -m http.server 8000 --bind 127.0.0.1 > /tmp/earth-evo-http.log 2>&1 &
+          echo $! > /tmp/earth-evo-server.pid
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:8000/ >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          exit 1
+      - name: Test seamless zoom in Chromium
+        run: node tests/browser-zoom.mjs
+      - name: Upload failure diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: zoom-browser-diagnostics
+          path: |
+            /tmp/earth-evo-zoom-failed.png
+            /tmp/earth-evo-http.log
+          if-no-files-found: ignore
