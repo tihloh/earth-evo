@@ -323,11 +323,30 @@ export class SurfaceWorld {
     a.target=null;a.decision=0;
   }
   onArrival(a,target){
-    if(a.goal==="hunting"&&target&&target.type==="grazer"&&target.active&&dist(a,target)<3){
+    if(["hunting","stalking"].includes(a.goal)&&target&&target.type==="grazer"&&
+      target.active&&dist(a,target)<3){
       target.health=0;target.active=false;a.hunger=CLAMP(a.hunger-60,0,100);a.energy=CLAMP(a.energy+26,0,100);
       a.skill.survival=CLAMP(a.skill.survival+.12,0,10);
       if(a.type==="human")a.food+=2;
       this.log((a.type==="human"?"Human":"Predator")+" #"+a.id+" hunted grazer #"+target.id);return;
+    }
+    if(a.goal==="fishing"&&target?.type==="marine"&&target.active&&dist(a,target)<4){
+      target.active=false;
+      a.hunger=Math.max(0,a.hunger-40);
+      a.skill.survival=CLAMP(a.skill.survival+.1,0,10);
+      this.log(a.species+" #"+a.id+" caught "+target.species);return;
+    }
+    if(a.goal==="drinking"){
+      a.thirst=0;a.energy=Math.min(100,a.energy+5);
+      return;
+    }
+    if(a.goal==="resting"||a.goal==="nesting"){
+      a.energy=Math.min(100,a.energy+23);
+      a.thirst=Math.min(100,a.thirst+2);
+      return;
+    }
+    if(a.goal==="herding"){
+      a.energy=Math.min(100,a.energy+2);return;
     }
     if((a.goal==="foraging"||a.goal==="collecting food")&&target?.fruit>0){
       const n=Math.min(target.fruit,a.type==="human"?2:1.5);target.fruit-=n;
@@ -372,21 +391,40 @@ export class SurfaceWorld {
   advance(dt){
     this.time+=dt;
     if(this.rain>0)this.rain=Math.max(0,this.rain-dt);
+    this.weatherTimer+=dt;
+    if(this.weatherTimer>42){
+      this.weatherTimer=0;
+      const g=this.sample(this.village.x,this.village.z),roll=this.rng.next();
+      const cold=g.temperature<4;
+      this.weather=cold&&roll<.31?"snow":
+        roll<g.moisture*.30?"rain":
+        roll<.11?"windy":g.moisture<.38&&roll<.30?"dust":
+        roll<.42?"cloudy":"clear";
+      this.weatherIntensity=this.weather==="clear"?0:this.rng.between(.4,.9);
+      this.wind=this.rng.between(-1,1);
+      this.log("Weather: "+this.weather);
+    }
     for(const tree of this.trees)if(tree.alive){
       tree.fruit=CLAMP(tree.fruit+dt*(this.rain? .08:.022)*this.fertility,0,6);
     }
     for(const a of this.agents){
       if(!a.active)continue;
-      a.age+=dt;a.hunger=CLAMP(a.hunger+dt*(a.type==="bird"?1.1:.7),0,110);
+      a.age+=dt;
+      a.hunger=CLAMP(a.hunger+dt*(a.type==="bird"?1.1:.7),0,110);
+      a.thirst=CLAMP((a.thirst||0)+dt*(a.type==="marine"?.05:.55),0,110);
       a.energy=CLAMP(a.energy+dt*.6,0,100);
       if(a.hunger>97)a.health-=dt*3;
+      if(a.thirst>97)a.health-=dt*4;
+      const spec=SPECIES[a.species];
+      if(spec&&this.era>=spec.max)a.health-=dt*12;
       if(a.health<=0){a.active=false;this.log(a.type+" #"+a.id+" died");continue}
       a.decision-=dt;
       if(a.decision<=0){
         this.decide(a);a.decision=.8+this.rng.between(0,.7);
       }
       this.move(a,dt);
-      if(a.type==="bird")a.altitude=3+2*Math.sin(a.age*3+a.id);
+      if(a.type==="bird")a.altitude=2.8+1.6*Math.sin(a.age*2+a.id);
+      if(a.type==="marine")a.altitude=.0;
       // Small autonomous population dynamics. Births depend on survival and resource access.
     }
     if(this.time-this.lastSeed>18&&this.trees.length<500&&this.era>=870){
@@ -403,7 +441,14 @@ export class SurfaceWorld {
       const prosperous=this.agents.filter(a=>a.active&&a.hunger<50);
       if(prosperous.length>8&&this.rng.next()<.7){
         const parent=this.rng.pick(prosperous),p=this.location(parent,5);
-        const baby=this.spawn(parent.type,p.x,p.z);
+        const baby=this.spawn(parent.type,p.x,p.z,parent.species);
+        if(baby){
+          baby.size=parent.size*.57;
+          baby.familyId=parent.id;
+          baby.personality=Object.fromEntries(Object.entries(parent.personality).map(
+            ([key,value])=>[key,CLAMP(value+this.rng.between(-.14,.14),0,1)]));
+          baby.memory.lastCompanion=parent.id;
+        }
         if(baby)this.log("A new "+parent.type+" was born");
       }
     }
@@ -452,7 +497,9 @@ export class SurfaceWorld {
         skill:{...a.skill},target:a.target?{...a.target}:null
       })),structures:this.structures.map(s=>({...s})),
       events:this.events.map(e=>({...e})),village:{...this.village},
-      rain:this.rain,fertility:this.fertility,lastBirth:this.lastBirth,lastSeed:this.lastSeed};
+      rain:this.rain,fertility:this.fertility,lastBirth:this.lastBirth,lastSeed:this.lastSeed,
+      weather:this.weather,weatherTimer:this.weatherTimer,weatherIntensity:this.weatherIntensity,
+      wind:this.wind};
   }
   static fromJSON(save){
     if(!save||save.version!==1||!Number.isInteger(save.seed)||save.seed<0||
@@ -504,6 +551,11 @@ export class SurfaceWorld {
     }
     w.village={...save.village};
     w.rain=Number(save.rain)||0;w.fertility=Number(save.fertility)||1;
+    w.weather=["clear","cloudy","rain","snow","windy","dust"].includes(save.weather)?
+      save.weather:"clear";
+    w.weatherTimer=Number(save.weatherTimer)||0;
+    w.weatherIntensity=Number(save.weatherIntensity)||0;
+    w.wind=Number(save.wind)||0;
     w.lastBirth=Number(save.lastBirth)||0;w.lastSeed=Number(save.lastSeed)||0;
     return w;
   }
