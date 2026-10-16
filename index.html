@@ -99,6 +99,25 @@
         <button type="button" data-god-action="hut">⌂ Place shelter</button>
         <button type="button" data-god-action="lightning">⚡ Lightning</button>
       </div>
+      <div class="eyebrow subhead">Explore real terrain shapes</div>
+      <div class="surface-picker">
+        <select id="landscapePicker" aria-label="Choose a landscape to explore">
+          <option value="mountain">Mountain ranges & valleys</option>
+          <option value="coast">Coasts, bays & cliffs</option>
+          <option value="lake">Inland lakes & ponds</option>
+          <option value="river">Rivers & gorges</option>
+          <option value="island">Islands & straits</option>
+          <option value="forest">Forested highlands</option>
+          <option value="desert">Desert & mesas</option>
+        </select>
+        <button id="visitLandscape" type="button">Explore</button>
+      </div>
+      <div class="eyebrow subhead">Summon a specific animal</div>
+      <div class="surface-picker">
+        <select id="speciesPicker" aria-label="Choose animal species from current era"></select>
+        <button id="summonSpecies" type="button">Place</button>
+      </div>
+      <p class="mini">Choose an available species, press Place, then click a suitable habitat in the world.</p>
       <div class="eyebrow subhead">Environment & atmosphere</div>
       <div class="environment-controls">
         <label for="fogMode">Fog style
@@ -124,6 +143,7 @@
       <div class="eyebrow subhead">Creature intelligence</div>
       <div class="inspector" id="creatureInspector">Click a person, animal, bird or shelter to inspect its behavior.</div>
       <button id="followCreature" class="follow-button" type="button" disabled>◎ Follow selected creature</button>
+      <button id="zoomCreature" class="follow-button" type="button" disabled>⌕ View face & anatomy</button>
       <div class="eyebrow subhead">Local time controls</div>
       <div class="local-clock"><button id="localPause" type="button" aria-pressed="false">Ⅱ Pause life</button>
       <label for="localSpeed">Speed</label>
