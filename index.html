@@ -91,13 +91,36 @@
         <button type="button" data-god-action="tree">🌲 Grow forest</button>
         <button type="button" data-god-action="rain">☂ Bring rain</button>
         <button type="button" data-god-action="food">❀ Grow food</button>
-        <button type="button" data-god-action="grazer">♘ Add grazer</button>
+        <button type="button" data-god-action="grazer">♘ Add herbivore</button>
+        <button type="button" data-god-action="marine">♒ Add marine life</button>
         <button type="button" data-god-action="predator">♞ Add predator</button>
         <button type="button" data-god-action="bird">⌁ Add bird</button>
         <button type="button" data-god-action="human">♟ Add human</button>
         <button type="button" data-god-action="hut">⌂ Place shelter</button>
         <button type="button" data-god-action="lightning">⚡ Lightning</button>
       </div>
+      <div class="eyebrow subhead">Environment & atmosphere</div>
+      <div class="environment-controls">
+        <label for="fogMode">Fog style
+          <select id="fogMode" aria-label="Atmosphere fog style">
+            <option value="none">None (clear distance)</option>
+            <option value="atmospheric">Atmospheric haze</option>
+            <option value="weather" selected>Match weather</option>
+          </select>
+        </label>
+        <label for="weatherMode">Weather
+          <select id="weatherMode" aria-label="Regional weather">
+            <option value="auto" selected>Automatic</option>
+            <option value="clear">Clear sky</option>
+            <option value="cloudy">Cloudy</option>
+            <option value="rain">Rain</option>
+            <option value="snow">Snow</option>
+            <option value="windy">Windy</option>
+            <option value="dust">Dusty</option>
+          </select>
+        </label>
+      </div>
+      <p class="mini" id="localTerrainInfo">Inspect terrain for the current landform or water body.</p>
       <div class="eyebrow subhead">Creature intelligence</div>
       <div class="inspector" id="creatureInspector">Click a person, animal, bird or shelter to inspect its behavior.</div>
       <button id="followCreature" class="follow-button" type="button" disabled>◎ Follow selected creature</button>
@@ -112,10 +135,11 @@
       <div class="info-line"><span>Herbivores</span><strong id="localGrazers">0</strong></div>
       <div class="info-line"><span>Predators</span><strong id="localPredators">0</strong></div>
       <div class="info-line"><span>Birds</span><strong id="localBirds">0</strong></div>
+      <div class="info-line"><span>Marine life</span><strong id="localMarine">0</strong></div>
       <div class="info-line"><span>Shelters</span><strong id="localBuildings">0</strong></div>
       <div class="eyebrow subhead">Autonomous activities</div>
       <ul class="event-list" id="localEvents"></ul>
-      <p class="notice">Local figures use a lightweight needs-and-goals AI. This detail scene is a regional sandbox, not an exact zoom-in representation of all global populations. God powers currently affect the region only.</p>
+      <p class="notice">Species appearance and vegetation are selected by approximate era and climate. Local creatures use lightweight goal-based AI, not sentience.  This detail scene is a regional sandbox, not an exact zoom-in representation of all global populations. God powers currently affect the region only.</p>
     </section>
     <div class="eyebrow">Species & lineages</div>
     <ul class="data-list" id="speciesList"></ul>
