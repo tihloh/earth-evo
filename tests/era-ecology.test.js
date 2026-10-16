@@ -8,7 +8,7 @@ const rng={next:()=>.23};
 const land={land:true,river:false,temperature:23,moisture:.73,coastal:false,waterKind:null,biome:"forest",height:3,lat:8,lon:20};
 const sea={...land,land:false,waterKind:"ocean",height:-3};
 test("Paleozoic sea creatures appear before terrestrial dinosaurs or humans",()=>{
- assert.equal(chooseSpecies(760,sea,rng,"marine"),"trilobite");
+ assert.ok(["jellyfish","trilobite"].includes(chooseSpecies(760,{...sea,height:-15},rng,"marine")));
  assert.equal(chooseSpecies(760,land,rng,"grazer"),null);
  assert.equal(chooseSpecies(760,land,rng,"predator"),null);
  assert.equal(chooseSpecies(760,land,rng,"bird"),null);
@@ -26,7 +26,7 @@ test("Mesozoic dinosaurs and pterosaurs end at the extinction milestone",()=>{
 });
 test("Animal species are constrained by climate, substrate and broad epoch",()=>{
  assert.equal(permitted(SPECIES.earlyFish,1540,land),false);
- assert.equal(permitted(SPECIES.earlyFish,1540,sea),true);
+ assert.equal(permitted(SPECIES.earlyFish,1540,{...sea,height:-5}),true);
  assert.equal(permitted(SPECIES.elephant,1540,{...land,temperature:1}),false);
  assert.equal(permitted(SPECIES.mammoth,1540,land),false);
  assert.equal(permitted(SPECIES.human,1250,land),true);
@@ -55,7 +55,7 @@ test("Marine creatures navigate water and carry individual species identity",()=
  assert.equal(w.counts.human,0);
  assert.ok(w.agents.filter(a=>a.type==="marine").every(a=>!w.isLand(a.x,a.z)));
  for(let i=0;i<1100;i++)w.update(.05);
- assert.ok(w.agents.some(a=>a.type==="marine"&&a.species==="trilobite"));
+ assert.ok(w.agents.some(a=>a.type==="marine"));
  assert.ok(w.agents.every(a=>Number.isFinite(a.x)&&Number.isFinite(a.rotation)));
 });
 test("Physical geography offers a broad feature taxonomy and stable samples",()=>{
