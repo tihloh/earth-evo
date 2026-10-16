@@ -6,6 +6,7 @@ import {OpenWorldStreamer} from "./open-world.js";
 import {configurePrecisionCamera,setCameraGlide,confineSurfaceTarget} from "./camera-controls.js";
 import {buildVegetationMeshes} from "./vegetation-view.js";
 import {createCreatureModel} from "./creature-models.js";
+import {SPECIES} from "./era-ecology.js";
 import {classifyPhysicalFeature} from "./physical-features.js";
 import {createLandformLandmarks} from "./landform-view.js";
 
@@ -20,7 +21,7 @@ const globe=Math.PI*2;
 export class SurfaceView{
   constructor(canvas,viewport,world,{onSelect=()=>{},onExit=()=>{},onAction=()=>{}}={}){
     this.canvas=canvas;this.viewport=viewport;this.world=world;
-    this.onSelect=onSelect;this.onExit=onExit;this.onAction=onAction;this.action="inspect";
+    this.onSelect=onSelect;this.onExit=onExit;this.onAction=onAction;this.action="inspect";this.selectedSpecies=null;
     this.scene=new THREE.Scene();this.scene.background=new THREE.Color(world.era<120?0x684c43:0xa1c7e4);
     this.fogMode="weather";this.weatherChoice="auto";
     this.scene.fog=new THREE.FogExp2(0xa1c7e4,.006);
@@ -371,8 +372,18 @@ export class SurfaceView{
     }else{
       const ground=this.raycaster.intersectObjects(this.terrainMeshes);
       if(ground.length){
-        const p=ground[0].point;this.world.intervene(this.action,p.x,p.z);
-        this.buildTreesAfterChanges();this.syncAgents();this.syncBuildings();this.weatherFlash=this.action==='lightning'?.42:0;this.onAction(this.action,p);
+        const p=ground[0].point;
+        if(this.action==="species"){
+          const spec=SPECIES[this.selectedSpecies];
+          if(spec){
+            const spawned=this.world.spawn(spec.guild,p.x,p.z,this.selectedSpecies);
+            this.world.log(spawned?
+              "God introduced "+this.selectedSpecies+" into the ecosystem":
+              this.selectedSpecies+" cannot live at this date and habitat");
+          }
+        }else this.world.intervene(this.action,p.x,p.z);
+        this.buildTreesAfterChanges();this.syncAgents();this.syncBuildings();
+        this.weatherFlash=this.action==='lightning'?.42:0;this.onAction(this.action,p);
       }
     }
   }
