@@ -75,7 +75,7 @@ test("scenic search is seeded and stable across identical runs",()=>{
 test("extended animals respect their earliest and latest supported model milestones",()=>{
  const warm={land:true,temperature:25,moisture:.58,coastal:false,
    river:false,waterKind:null,height:4,biome:"grassland"};
- const sea={...warm,land:false,waterKind:"ocean"};
+ const sea={...warm,land:false,waterKind:"ocean",height:-15};
  assert.equal(permitted(SPECIES.triceratops,1000,warm),false);
  assert.equal(permitted(SPECIES.triceratops,1110,warm),true);
  assert.equal(permitted(SPECIES.triceratops,1160,warm),false);
