@@ -15,8 +15,11 @@ export function terrainHeight(x,z,seed=0){
     15*Math.exp(-((x-61)**2/520+(z-38)**2/940))+
     9*Math.exp(-((x+30)**2/700+(z-67)**2/790));
   const valley=5.2*Math.exp(-(((x-riverX(z,seed))/6.3)**2));
-  const archipelago=-8*Math.exp(-((x+77)**2/250+(z-32)**2/900))-
-    6*Math.exp(-((x-80)**2/380+(z+64)**2/700));
+  // Coastal channels around small offshore islands.
+  const archipelago=-11*Math.exp(-((x+77)**2/450+(z-32)**2/900))-
+    10*Math.exp(-((x-77)**2/450+(z+64)**2/650))+
+    11*Math.exp(-((x+77)**2/58+(z-32)**2/80))+
+    12*Math.exp(-((x-77)**2/65+(z+64)**2/75));
   return hills+peaks-valley+archipelago;
 }
 export class SurfaceWorld {
