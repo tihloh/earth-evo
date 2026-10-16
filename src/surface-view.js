@@ -58,8 +58,14 @@ export class SurfaceView{
     mesh.position.set(x,y,z);parent.add(mesh);return mesh;
   }
   rebuild(){
-    for(const child of [...this.worldRoot.children])this.worldRoot.remove(child);
-    for(const obj of this.instanced){obj.geometry.dispose();obj.material.dispose()}
+    const shared=Object.values(m);
+    for(const child of [...this.worldRoot.children]){
+      child.traverse(obj=>{
+        if(obj.geometry)obj.geometry.dispose();
+        if(obj.material&&!shared.includes(obj.material))obj.material.dispose();
+      });
+      this.worldRoot.remove(child);
+    }
     this.instanced=[];this.treeMeshes=[];this.characters.clear();this.structures.clear();
     this.buildTerrain();this.buildWater();this.buildTrees();this.buildProps();
     this.syncAgents();this.syncBuildings();
@@ -289,7 +295,11 @@ export class SurfaceView{
     this.canvas.removeEventListener("pointerup",this.onUp);
     this.canvas.removeEventListener("wheel",this.onWheel);
     this.controls.dispose();
-    for(const child of this.worldRoot.children)child.traverse?.(c=>{c.geometry?.dispose()});
+    const shared=Object.values(m);
+    for(const child of this.worldRoot.children)child.traverse?.(c=>{
+      c.geometry?.dispose();
+      if(c.material&&!shared.includes(c.material))c.material.dispose();
+    });
     this.renderer.dispose();
   }
 }
