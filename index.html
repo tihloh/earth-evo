@@ -16,10 +16,20 @@
 <body>
 <header class="topbar">
   <div><div class="brand">◎ EARTH <em>EVO</em></div><div class="brand-sub">FROM A PRIMITIVE PLANET TO POSSIBLE FUTURES</div></div>
-  <div class="chip">INTERACTIVE 3D SIMULATION · v0.2</div>
+  <div class="hud-toolbar" aria-label="World view controls">
+    <button id="toggleLeft" type="button" aria-controls="worldHud" aria-expanded="true" title="Show or hide world statistics">☰ World HUD</button>
+    <button id="toggleRight" type="button" aria-controls="actionsHud" aria-expanded="true" title="Show or hide god powers and activity">⚙ Actions HUD</button>
+    <label class="camera-quality" for="cameraGlide">Camera glide
+      <select id="cameraGlide" aria-label="Camera residual glide">
+        <option value="0">None (0%)</option>
+        <option value="2" selected>Precise (2%)</option>
+        <option value="5">Soft (5%)</option>
+      </select>
+    </label>
+  </div>
 </header>
 <div class="workspace">
-  <aside class="left" aria-label="World state details">
+  <aside id="worldHud" class="left hud-panel" aria-label="World state details">
     <div class="eyebrow">World evolution</div>
     <h1 id="eraText">Planet formation</h1>
     <p id="eraDescription">Earth begins its journey.</p>
@@ -54,7 +64,7 @@
       <div class="viewport-header"><div class="eyebrow">Planet Earth / Sol System</div></div>
       <button type="button" class="enter-surface" id="enterSurface">⌕ Explore surface</button>
       <div class="globe-select-hint" id="globeSelection">Click the globe to choose an area, then zoom in</div>
-      <div class="viewport-footer"><span>Drag to rotate · Scroll to zoom</span><span id="tickText">Simulation tick 0</span></div>
+      <div class="viewport-footer"><span>Drag to orbit · Right drag to pan · Scroll to zoom</span><span id="tickText">Simulation tick 0</span></div>
     </div>
     <div id="surfaceViewport" hidden>
       <canvas id="surface" aria-label="Explorable region with terrain, forests and autonomous creatures">A modern WebGL browser is required.</canvas>
@@ -62,10 +72,10 @@
         <button type="button" id="leaveSurface">← Return to planet</button>
         <div id="localLabel" class="surface-caption">Living region</div>
       </div>
-      <div class="surface-overlay bottom">Drag to orbit · Scroll to zoom · Click a creature to inspect · Use god powers to change the environment</div>
+      <div class="surface-overlay bottom">Drag to orbit · Right drag to pan · Cursor-focused zoom · Click to inspect or use powers</div>
     </div>
   </main>
-  <aside class="right" aria-label="Ecological changes and interventions">
+  <aside id="actionsHud" class="right hud-panel" aria-label="Ecological changes and interventions">
     <section id="localPanel" hidden>
       <div class="eyebrow">God mode · Surface controls</div>
       <p class="mini">Choose a power, then click the terrain to apply it. Select Inspect to examine a creature.</p>
