@@ -21,7 +21,7 @@ const PALETTE={
   evergreen:0x315e52,evergreenLight:0x427d5b,acacia:0x698b45,
   willow:0x739e53,palm:0x519b64,fern:0x3f8a63,grass:0x7fa464,
   reed:0xa0a966,flowerPink:0xef8db0,flowerYellow:0xffd46d,
-  heather:0x9a76ae,mangrove:0x32715d,stems:0x6d8054
+  heather:0x9a76ae,mangrove:0x32715d,stems:0x6d8054,primitive:0x4f805b,spores:0x9ba96b,cycad:0x426e4c,ginkgo:0x839e57,algae:0x488c71
 };
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 const makeMesh=(shape,hex,transforms)=>{
@@ -55,13 +55,40 @@ export function buildVegetationMeshes(world){
     const {x,z,id}=t,s=t.size||1,y=world.height(x,z);
     const species=t.species??"oak",turn=(id*1.618033988)%6.283185307;
     const rot=(offset)=>turn+offset;
-    if(species==="pine"||species==="cedar"){
+    if(["pine","cedar","conifer"].includes(species)){
       const tall=(species==="cedar"?7.6:6.3)*s;
       part("trunk","darkBark",x,y+tall*.46,z,.65*s,tall*.92,.65*s);
       for(let i=0;i<3;i++){
         const wide=(species==="cedar"?1.9:2.25)*s*(1-i*.20);
         part("cone",i===1?"evergreenLight":"evergreen",x,y+(2.7+i*1.55)*s,z,
           wide,(3.7-i*.2)*s,wide,0,turn);
+      }
+    }else if(species==="clubmoss"||species==="horsetail"){
+      const tall=(species==="clubmoss"?3.3:2.1)*s;
+      part("skinny","primitive",x,y+tall*.5,z,.6*s,tall,.6*s);
+      for(let j=0;j<7;j++){
+        const a=rot(j*Math.PI*2/7),yOffset=tall*(.24+j*.08)*s;
+        part("cone","primitive",x+Math.cos(a)*.35*s,y+yOffset,
+          z+Math.sin(a)*.35*s,.45*s,1.6*s,.45*s,Math.cos(a)*.3,a);
+      }
+      part("cone","spores",x,y+tall*s,z,.30*s,.65*s,.30*s);
+    }else if(species==="treeFern"||species==="cycad"){
+      const tall=(species==="treeFern"?4.6:2.7)*s;
+      part("trunk","darkBark",x,y+tall*.5,z,.57*s,tall,.57*s);
+      for(let j=0;j<9;j++){
+        const a=rot(j*Math.PI*2/9);
+        const radius=species==="treeFern"?2.1:1.35;
+        part("leaf",species==="treeFern"?"fern":"cycad",
+          x+Math.cos(a)*radius*s,y+tall*s+.2*s,
+          z+Math.sin(a)*radius*s,1.2*s,.13*s,2.9*s,0,a);
+      }
+    }else if(species==="ginkgo"){
+      const height=6.1*s;
+      part("trunk","bark",x,y+height*.5,z,.75*s,height,.75*s);
+      for(let j=0;j<6;j++){
+        const a=rot(j*Math.PI/3);
+        part("crown","ginkgo",x+Math.cos(a)*1.45*s,y+height*s,
+          z+Math.sin(a)*1.45*s,1.5*s,.73*s,1.45*s,0,a);
       }
     }else if(species==="palm"){
       const height=6.4*s,lean=Math.sin(id)*.14;
@@ -119,7 +146,25 @@ export function buildVegetationMeshes(world){
     const p=world.undergrowth[i],{x,z,species}=p;
     const s=p.size||1,y=world.height(x,z);
     const rot=p.angle||0;
-    if(species==="grass"||species==="reed"){
+    if(["algalMat","earlyMoss","moss"].includes(species)){
+      for(let j=0;j<4;j++){
+        const a=rot+j*Math.PI/2;
+        part("bush",species==="algalMat"?"algae":"primitive",
+          x+Math.cos(a)*.28*s,y+.13*s,z+Math.sin(a)*.28*s,
+          .45*s,.18*s,.43*s);
+      }
+    }else if(species==="clubmoss"||species==="horsetail"){
+      const count=5,high=species==="horsetail"?1.5:.9;
+      for(let j=0;j<count;j++){
+        const a=rot+j*Math.PI*2/count;
+        part("skinny","primitive",
+          x+Math.cos(a)*.2*s,y+.5*high*s,z+Math.sin(a)*.2*s,
+          .22*s,high*s,.22*s);
+        part("cone","spores",
+          x+Math.cos(a)*.2*s,y+high*s,z+Math.sin(a)*.2*s,
+          .19*s,.30*s,.19*s);
+      }
+    }else if(species==="grass"||species==="reed"){
       const n=species==="reed"?4:5,length=species==="reed"?2.3:.9;
       for(let j=0;j<n;j++){
         const a=rot+j*Math.PI*2/n;
