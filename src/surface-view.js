@@ -7,6 +7,7 @@ import {configurePrecisionCamera,setCameraGlide,confineSurfaceTarget} from "./ca
 import {buildVegetationMeshes} from "./vegetation-view.js";
 import {createCreatureModel} from "./creature-models.js";
 import {classifyPhysicalFeature} from "./physical-features.js";
+import {createLandformLandmarks} from "./landform-view.js";
 
 const color=(hex)=>new THREE.MeshStandardMaterial({color:hex,roughness:1,flatShading:true});
 const m={trunk:color(0x65452e),leaf:color(0x4c9860),leaf2:color(0x60ac64),
@@ -43,7 +44,7 @@ export class SurfaceView{
     this.characters=new Map();this.structures=new Map();this.instanced=[];this.treeMeshes=[];this.treeCount=0;this.visible=true;this.weatherFlash=0;this.speed=1;this.paused=false;this.followAgentId=null;
     this.terrain=null;this.river=null;this.pointerDown=null;this.interactTargets=[];
     this.terrainChunks=new Map();this.terrainMeshes=[];
-    this.waterChunks=new Map();this.renderRadius=3;
+    this.waterChunks=new Map();this.landmarkChunks=new Map();this.renderRadius=3;
     this.fogDetailRadius=1;this.lastTileUpdate=0;this.chunkCenter="";
     this.skyColor=new THREE.Color(0xa1c7e4);this.precipitation=null;
     this.setupPrecipitation();
@@ -132,6 +133,11 @@ export class SurfaceView{
     this.terrainChunks.forEach(t=>t.geometry.dispose());
     for(const m of this.terrainChunks.values())this.worldRoot.remove(m);
     for(const pieces of this.waterChunks.values())for(const m of pieces){this.worldRoot.remove(m);m.geometry.dispose()}
+    for(const g of this.landmarkChunks.values()){
+      this.worldRoot.remove(g);
+      g.traverse(o=>o.geometry?.dispose());
+    }
+    this.landmarkChunks.clear();
     this.terrainChunks.clear();this.waterChunks.clear();this.terrainMeshes=[];
     this.chunkCenter="";this.updateTiles(true);
   }
@@ -149,7 +155,8 @@ export class SurfaceView{
       this.worldRoot.remove(child);
     }
     this.instanced=[];this.treeMeshes=[];this.characters.clear();this.structures.clear();
-    this.terrainChunks.clear();this.waterChunks.clear();this.terrainMeshes=[];
+    this.terrainChunks.clear();this.waterChunks.clear();this.landmarkChunks.clear();
+    this.terrainMeshes=[];
     this.streamer=new OpenWorldStreamer(this.world);
     this.streamer.update(this.controls.target.x,this.controls.target.z);
     this.buildTerrain();this.buildTrees();
@@ -248,6 +255,12 @@ export class SurfaceView{
     for(const [key,mesh]of this.terrainChunks){
       if(desired.has(key)&&mesh.userData.lod===desired.get(key).lod)continue;
       this.worldRoot.remove(mesh);mesh.geometry.dispose();this.terrainChunks.delete(key);
+      const landmarks=this.landmarkChunks.get(key);
+      if(landmarks){
+        this.worldRoot.remove(landmarks);
+        landmarks.traverse(o=>o.geometry?.dispose());
+        this.landmarkChunks.delete(key);
+      }
       const water=this.waterChunks.get(key);
       if(water){for(const piece of water){this.worldRoot.remove(piece);piece.geometry.dispose()}this.waterChunks.delete(key)}
     }
@@ -256,6 +269,12 @@ export class SurfaceView{
       const tile=this.makeTerrainTile(t.xx,t.zz,t.lod);
       tile.userData.lod=t.lod;
       this.terrainChunks.set(key,tile);this.worldRoot.add(tile);
+      if(t.lod===0&&this.world.era>=120){
+        const landmarks=createLandformLandmarks(this.world,t.xx,t.zz,size);
+        if(landmarks.children.length){
+          this.landmarkChunks.set(key,landmarks);this.worldRoot.add(landmarks);
+        }
+      }
       if(this.world.era>=120){
         const ocean=new THREE.Mesh(new THREE.PlaneGeometry(size,size),m.water);
         ocean.rotation.x=-Math.PI/2;
