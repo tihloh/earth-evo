@@ -6,6 +6,7 @@ import {OpenWorldStreamer} from "./open-world.js";
 import {configurePrecisionCamera,setCameraGlide,confineSurfaceTarget} from "./camera-controls.js";
 import {buildVegetationMeshes} from "./vegetation-view.js";
 import {createCreatureModel} from "./creature-models.js";
+import {classifyPhysicalFeature} from "./physical-features.js";
 
 const color=(hex)=>new THREE.MeshStandardMaterial({color:hex,roughness:1,flatShading:true});
 const m={trunk:color(0x65452e),leaf:color(0x4c9860),leaf2:color(0x60ac64),
@@ -130,7 +131,7 @@ export class SurfaceView{
     this.renderRadius=Math.max(2,Math.min(4,Math.round(radius)));
     this.terrainChunks.forEach(t=>t.geometry.dispose());
     for(const m of this.terrainChunks.values())this.worldRoot.remove(m);
-    for(const m of this.waterChunks.values()){this.worldRoot.remove(m);m.geometry.dispose()}
+    for(const pieces of this.waterChunks.values())for(const m of pieces){this.worldRoot.remove(m);m.geometry.dispose()}
     this.terrainChunks.clear();this.waterChunks.clear();this.terrainMeshes=[];
     this.chunkCenter="";this.updateTiles(true);
   }
@@ -155,8 +156,8 @@ export class SurfaceView{
     this.syncAgents();this.syncBuildings();
   }
   buildTerrain(){this.updateTiles(true)}
-  makeTerrainTile(cx,cz,detail=true,explored=true){
-    const size=STREAM_CHUNK_SIZE,segments=detail?32:6;
+  makeTerrainTile(cx,cz,lod=0){
+    const size=STREAM_CHUNK_SIZE,segments=lod===0?32:lod===1?12:4;
     const geometry=new THREE.PlaneGeometry(size,size,segments,segments);
     geometry.rotateX(-Math.PI/2);
     const positions=geometry.attributes.position,colors=[];
@@ -168,23 +169,65 @@ export class SurfaceView{
       positions.setY(i,s.height);
       if(this.world.era<120)tint.setHex(s.land?0x97523d:0xdf6737);
       else if(!s.land)tint.setHex(0x576f71);
-      else if(s.river)tint.setHex(0x368bb8);
+      else if(s.river)tint.setHex(0x397f9a);
       else if(s.biome==="ice")tint.setHex(0xd8e5ed);
       else if(s.biome==="alpine")tint.setHex(0x969a92);
       else if(this.world.era<870)tint.setHex(0x9d8a75);
       else if(s.biome==="forest")tint.setHex(0x5d925d);
       else if(s.biome==="dryland")tint.setHex(0xb59f6f);
       else tint.setHex(0x86a86e);
+      if(s.land&&this.world.era>=120){
+        const feature=classifyPhysicalFeature(s).name;
+        if(["beach","cape","peninsula","isthmus","delta"].includes(feature))
+          tint.setHex(0xc4ba91);
+        else if(["volcano","crater","cliff","gorge","canyon"].includes(feature))
+          tint.setHex(0x827a71);
+        else if(["dune","desert","mesa"].includes(feature))
+          tint.setHex(0xc7ac78);
+        else if(["marsh","floodplain","wetland"].includes(feature))
+          tint.setHex(0x628776);
+      }
       colors.push(tint.r,tint.g,tint.b);
     }
     positions.needsUpdate=true;
     geometry.setAttribute("color",new THREE.Float32BufferAttribute(colors,3));
     geometry.computeVertexNormals();
     const mesh=new THREE.Mesh(geometry,this.terrainMaterial);
-    mesh.position.set(centerX,0,centerZ);mesh.receiveShadow=true;
+    mesh.position.set(centerX,0,centerZ);mesh.receiveShadow=lod===0;
     mesh.userData.tileKey=cx+","+cz;
     mesh.userData.sharedMaterial=true;
     return mesh;
+  }
+  makeFreshwaterTile(cx,cz,lod=0){
+    // Low-overdraw local mesh for rivers, streams, wetlands and inland lakes.
+    // Ocean water remains a single flat, cheap surface under each terrain tile.
+    const size=STREAM_CHUNK_SIZE,n=lod===0?24:lod===1?10:5;
+    const left=cx*size,top=cz*size,positions=[],indices=[];
+    function addTriangle(points){
+      const base=positions.length/3;
+      for(const p of points)positions.push(p.x,p.y,p.z);
+      indices.push(base,base+1,base+2);
+    }
+    for(let iz=0;iz<n;iz++)for(let ix=0;ix<n;ix++){
+      const x=left+ix*size/n,z=top+iz*size/n,step=size/n;
+      const sample=this.world.sample(x+step*.5,z+step*.5);
+      if(!sample.river&&sample.waterKind!=="lake")continue;
+      const height=(xx,zz)=>{
+        const s=this.world.sample(xx,zz);
+        return (sample.waterKind==="lake"?Math.max(0,s.height):s.height)+.08;
+      };
+      const p0={x,y:height(x,z),z},p1={x:x+step,y:height(x+step,z),z},
+        p2={x,y:height(x,z+step),z:z+step},
+        p3={x:x+step,y:height(x+step,z+step),z:z+step};
+      addTriangle([p0,p2,p1]);addTriangle([p1,p2,p3]);
+    }
+    if(!indices.length)return null;
+    const geometry=new THREE.BufferGeometry();
+    geometry.setAttribute("position",new THREE.Float32BufferAttribute(positions,3));
+    geometry.setIndex(indices);geometry.computeVertexNormals();
+    const mesh=new THREE.Mesh(geometry,m.river);
+    mesh.userData.sharedMaterial=true;
+    mesh.renderOrder=1;return mesh;
   }
   updateTiles(force=false){
     const size=STREAM_CHUNK_SIZE;
@@ -198,26 +241,30 @@ export class SurfaceView{
     for(let dx=-this.renderRadius;dx<=this.renderRadius;dx++)
       for(let dz=-this.renderRadius;dz<=this.renderRadius;dz++){
         const xx=cx+dx,zz=cz+dz,key=xx+","+zz;
-        const detail=Math.max(Math.abs(dx),Math.abs(dz))<=this.fogDetailRadius;
-        const explored=this.streamer.isExplored(xx,zz);
-        desired.set(key,{xx,zz,detail,explored});
+        const d=Math.max(Math.abs(dx),Math.abs(dz));
+        const lod=d<=1?0:d<=2?1:2;
+        desired.set(key,{xx,zz,lod});
       }
     for(const [key,mesh]of this.terrainChunks){
-      if(desired.has(key)&&mesh.userData.detail===desired.get(key).detail)continue;
+      if(desired.has(key)&&mesh.userData.lod===desired.get(key).lod)continue;
       this.worldRoot.remove(mesh);mesh.geometry.dispose();this.terrainChunks.delete(key);
       const water=this.waterChunks.get(key);
-      if(water){this.worldRoot.remove(water);water.geometry.dispose();this.waterChunks.delete(key)}
+      if(water){for(const piece of water){this.worldRoot.remove(piece);piece.geometry.dispose()}this.waterChunks.delete(key)}
     }
     for(const [key,t]of desired){
       if(this.terrainChunks.has(key))continue;
-      const tile=this.makeTerrainTile(t.xx,t.zz,t.detail,t.explored);
-      tile.userData.detail=t.detail;
+      const tile=this.makeTerrainTile(t.xx,t.zz,t.lod);
+      tile.userData.lod=t.lod;
       this.terrainChunks.set(key,tile);this.worldRoot.add(tile);
       if(this.world.era>=120){
-        const water=new THREE.Mesh(new THREE.PlaneGeometry(size,size),m.water);
-        water.rotation.x=-Math.PI/2;
-        water.position.set((t.xx+.5)*size,0,(t.zz+.5)*size);
-        this.worldRoot.add(water);this.waterChunks.set(key,water);
+        const ocean=new THREE.Mesh(new THREE.PlaneGeometry(size,size),m.water);
+        ocean.rotation.x=-Math.PI/2;
+        ocean.position.set((t.xx+.5)*size,0,(t.zz+.5)*size);
+        ocean.userData.sharedMaterial=true;
+        const fresh=this.makeFreshwaterTile(t.xx,t.zz,t.lod);
+        const pieces=fresh?[ocean,fresh]:[ocean];
+        for(const water of pieces)this.worldRoot.add(water);
+        this.waterChunks.set(key,pieces);
       }
     }
     this.terrainMeshes=[...this.terrainChunks.values()];
