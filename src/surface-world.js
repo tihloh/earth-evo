@@ -155,6 +155,15 @@ export class SurfaceWorld {
       "gathering timber":"Collecting materials for shelters",
       "delivering timber":"Returning collected wood to the community",
       "building shelter":"Enough shared material is available to construct shelter",
+      resting:"Low energy: resting and recovering",
+      drinking:"Dehydrated: searching for fresh water",
+      herding:"Following a nearby member of the herd",
+      stalking:"Approaching prey more carefully",
+      fishing:"Searching coastal waters for fish",
+      migrating:"Seeking more suitable habitat",
+      guarding:"Keeping near the settlement",
+      feeding:"Feeding within a safe habitat",
+      nesting:"Resting in a sheltered location",
       socializing:"Companionship and cooperative relationships matter",
       flying:"Searching for food and navigating the sky",
       patrolling:"Searching the surroundings for prey",
@@ -165,49 +174,108 @@ export class SurfaceWorld {
   randomDestination(a,goal="wandering"){
     this.destination(a,this.location({x:a.x,z:a.z},24),goal);
   }
+  freshwater(a){
+    if(a.memory.lastWater&&this.time-a.memory.lastWater.time<90){
+      const known=a.memory.lastWater;
+      if(this.sample(known.x,known.z).river)return known;
+    }
+    let best=null,score=Infinity;
+    for(let radius=5;radius<=35;radius+=7){
+      for(let dir=0;dir<12;dir++){
+        const angle=dir*Math.PI/6,px=a.x+Math.cos(angle)*radius,
+          pz=a.z+Math.sin(angle)*radius,s=this.sample(px,pz);
+        if(!s.river&&s.waterKind!=="lake")continue;
+        if(radius<score){best={x:px,z:pz};score=radius}
+      }
+      if(best)break;
+    }
+    if(best)a.memory.lastWater={...best,time:this.time};
+    return best;
+  }
   decide(a){
     if(!a.active)return;
-    if(a.type==="grazer"||a.type==="bird"){
-      const predator=this.nearest(a,"predator",()=>true,a.type==="bird"?12:16+(1-a.personality.courage)*7);
+    if(a.energy<23&&!["fleeing","escaping danger"].includes(a.goal)){
+      this.destination(a,a,"resting");return;
+    }
+    const aquatic=a.type==="marine";
+    if(aquatic){
+      const bigger=this.nearest(a,"marine",p=>p.size>a.size*1.45,19);
+      if(bigger&&a.hunger<75){
+        const dx=a.x-bigger.x,dz=a.z-bigger.z,d=Math.max(.1,Math.hypot(dx,dz));
+        this.destination(a,{x:a.x+dx/d*22,z:a.z+dz/d*22},"fleeing");
+      }else if(!a.target||this.rng.next()<.18){
+        this.randomDestination(a,"feeding");
+      }
+      return;
+    }
+    const flying=a.type==="bird";
+    const grazer=a.type==="grazer";
+    if(grazer||flying){
+      const predator=this.nearest(a,"predator",()=>true,
+        flying?9:14+(1-a.personality.courage)*9);
       if(predator){
         a.memory.lastDanger={x:predator.x,z:predator.z,time:this.time};
-        const dx=a.x-predator.x,dz=a.z-predator.z,d=Math.max(.01,Math.hypot(dx,dz));
-        this.destination(a,{x:CLAMP(a.x+dx/d*27,-10000,10000),z:CLAMP(a.z+dz/d*27,-10000,10000)},"fleeing");
+        const dx=a.x-predator.x,dz=a.z-predator.z,d=Math.max(.1,Math.hypot(dx,dz));
+        this.destination(a,{x:a.x+dx/d*26,z:a.z+dz/d*26},"fleeing");
         return;
+      }
+      if(a.thirst>57){
+        const water=this.freshwater(a);
+        if(water){this.destination(a,water,"drinking");return}
+      }
+      const species=SPECIES[a.species]||{};
+      if(flying&&species.diet==="fish"&&a.hunger>29){
+        const fish=this.nearest(a,"marine",()=>true,40);
+        if(fish){this.destination(a,fish,"fishing");return}
       }
       const remembered=a.memory.lastFood&&this.trees.find(t=>t.id===a.memory.lastFood&&t.alive&&t.fruit>.5);
       const tree=remembered&&dist(a,remembered)<35?remembered:
         this.nearest(a,"tree",t=>t.fruit>.5,30);
       if(a.hunger>38&&tree){this.destination(a,tree,"foraging");return}
-      if(!a.target||this.rng.next()<.12)this.randomDestination(a,a.type==="bird"?"flying":"grazing");
+      const other=this.nearest(a,a.type,other=>other.species===a.species,26);
+      if(other&&this.rng.next()<.27+a.personality.sociability*.2){
+        this.destination(a,other,"herding");return;
+      }
+      if(!a.target||this.rng.next()<.18)this.randomDestination(a,flying?"flying":"grazing");
       return;
     }
     if(a.type==="predator"){
-      const prey=this.nearest(a,"grazer",()=>true,40+10*a.personality.courage);
-      if(a.hunger>23&&prey){this.destination(a,prey,"hunting");return}
-      if(!a.target||this.rng.next()<.1)this.randomDestination(a,"patrolling");
+      if(a.thirst>70){
+        const water=this.freshwater(a);
+        if(water){this.destination(a,water,"drinking");return}
+      }
+      const prey=this.nearest(a,"grazer",()=>true,38+13*a.personality.courage);
+      if(a.hunger>24&&prey){
+        this.destination(a,prey,a.hunger>70?"hunting":"stalking");return;
+      }
+      if(!a.target||this.rng.next()<.14)this.randomDestination(a,"patrolling");
       return;
     }
-    // Human goal-based behavior: danger > food > shelter materials > building > socializing.
-    const threat=this.nearest(a,"predator",()=>true,12+(1-a.personality.courage)*8);
+    const threat=this.nearest(a,"predator",()=>true,12+(1-a.personality.courage)*9);
     if(threat){
       a.memory.lastDanger={x:threat.x,z:threat.z,time:this.time};
-      const dx=a.x-threat.x,dz=a.z-threat.z,d=Math.max(.01,Math.hypot(dx,dz));
-      this.destination(a,{x:CLAMP(a.x+dx/d*23,-10000,10000),z:CLAMP(a.z+dz/d*23,-10000,10000)},"escaping danger");
-      return;
+      const dx=a.x-threat.x,dz=a.z-threat.z,d=Math.max(.1,Math.hypot(dx,dz));
+      this.destination(a,{x:a.x+dx/d*26,z:a.z+dz/d*26},"escaping danger");return;
+    }
+    if(a.thirst>53){
+      const water=this.freshwater(a);
+      if(water){this.destination(a,water,"drinking");return}
     }
     const known=a.memory.lastFood&&this.trees.find(t=>t.id===a.memory.lastFood&&t.alive&&t.fruit>.5);
-    const tree=known&&dist(a,known)<55?known:this.nearest(a,"tree",t=>t.fruit>1||t.wood>0,56);
-    if(a.hunger>37&&a.food<1&&a.personality.courage>.5&&
-      this.rng.next()<.34){
+    const tree=known&&dist(a,known)<55?known:
+      this.nearest(a,"tree",t=>t.fruit>1||t.wood>0,56);
+    if(a.hunger>37&&a.food<1&&a.personality.courage>.5&&this.rng.next()<.35){
       const prey=this.nearest(a,"grazer",()=>true,58);
       if(prey){this.destination(a,prey,"hunting");return}
     }
-    if(a.hunger>42&&a.food<1&&tree&&tree.fruit>0){
+    if(a.hunger>42&&a.food<1&&tree?.fruit>0){
       this.destination(a,tree,"collecting food");return;
     }
-    if(a.hunger>40&&a.food>0){a.food--;a.hunger=CLAMP(a.hunger-50,0,100);a.goal="eating";return}
-    if(this.era>=1310&&a.carried<2&&tree&&tree.wood>.3&&
+    if(a.hunger>40&&a.food>0){
+      a.food--;a.hunger=CLAMP(a.hunger-50,0,100);
+      this.destination(a,a,"resting");return;
+    }
+    if(this.era>=1310&&a.carried<2&&tree?.wood>.3&&
       (a.personality.diligence>.22||this.village.wood<3)){
       this.destination(a,tree,"gathering timber");return;
     }
@@ -216,26 +284,42 @@ export class SurfaceWorld {
       this.destination(a,this.village,"building shelter");return;
     }
     const other=this.nearest(a,"human",()=>true,35);
-    if(other&&this.rng.next()<.1+.45*a.personality.sociability){
-      this.destination(a,other,"socializing");return}
-    if(!a.target||this.rng.next()<.16)this.randomDestination(a,"exploring");
+    if(other&&this.rng.next()<.12+.47*a.personality.sociability){
+      a.memory.lastCompanion=other.id;
+      this.destination(a,other,"socializing");return;
+    }
+    if(!a.target||this.rng.next()<.22)this.randomDestination(a,"exploring");
   }
   move(a,dt){
     if(!a.target){this.decide(a);return}
     let x=a.target.x,z=a.target.z;
-    const goalTarget=a.target.id?this.agents.find(v=>v.id===a.target.id&&v.active)||this.trees.find(v=>v.id===a.target.id&&v.alive):null;
-    if(goalTarget){x=goalTarget.x;z=goalTarget.z}
+    const dest=a.target.id?this.agents.find(v=>v.id===a.target.id&&v.active)||
+      this.trees.find(v=>v.id===a.target.id&&v.alive):null;
+    if(dest){x=dest.x;z=dest.z}
     const dx=x-a.x,dz=z-a.z,d=Math.hypot(dx,dz);
-    if(d>1.3){
-      const speed=(a.type==="bird"?8.5:a.type==="predator"?5.1:a.type==="grazer"?4.1:2.4)*(a.goal==="fleeing"||a.goal==="escaping danger"?1.48:1);
+    const radius=a.goal==="resting"?1.3:a.goal==="hunting"||a.goal==="stalking"?2.6:1.3;
+    if(d>radius){
+      const spec=SPECIES[a.species],base=spec?.speed||2.5;
+      const flee=a.goal==="fleeing"||a.goal==="escaping danger";
+      const speed=base*(flee?1.56:a.goal==="stalking"?.56:1)*
+        (a.energy<25?.65:1);
       const step=Math.min(d,speed*dt);
-      const nx=CLAMP(a.x+dx/d*step,-10000,10000),nz=CLAMP(a.z+dz/d*step,-10000,10000);
-      if(this.isLand(nx,nz)||a.type==="bird"){
-        a.x=nx;a.z=nz;a.rotation=Math.atan2(dx,dz);
-      }else{a.target=null;a.decision=0}
+      const nx=CLAMP(a.x+dx/d*step,-10000,10000),
+        nz=CLAMP(a.z+dz/d*step,-10000,10000);
+      const terrain=this.sample(nx,nz);
+      const canGo=a.type==="bird"||a.type==="marine"?!terrain.land:terrain.land;
+      if(canGo||a.type==="bird"){
+        a.x=nx;a.z=nz;
+        const aim=Math.atan2(dx,dz);
+        a.rotation+=Math.atan2(Math.sin(aim-a.rotation),
+          Math.cos(aim-a.rotation))*Math.min(1,dt*8);
+        a.energy=CLAMP(a.energy-dt*(flee?2.0:.40),0,100);
+        a.motion={speed,mode:a.goal,stride:(a.motion?.stride||0)+dt*speed*4};
+      }else{a.target=null;a.decision=0;a.motion={speed:0,mode:"idle",stride:0}}
       return;
     }
-    this.onArrival(a,goalTarget);
+    a.motion={speed:0,mode:a.goal,stride:a.motion?.stride||0};
+    this.onArrival(a,dest);
     a.target=null;a.decision=0;
   }
   onArrival(a,target){
