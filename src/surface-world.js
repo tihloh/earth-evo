@@ -175,7 +175,7 @@ export class SurfaceWorld {
     if(a.type==="marine"){
       for(let i=0;i<28;i++){
         const x=a.x+this.rng.between(-24,24),z=a.z+this.rng.between(-24,24);
-        if(!this.isLand(x,z)){this.destination(a,{x,z},goal);return}
+        if(permitted(SPECIES[a.species],this.era,this.sample(x,z))){this.destination(a,{x,z},goal);return}
       }
       this.destination(a,{x:a.x,z:a.z},goal);return;
     }
@@ -314,7 +314,9 @@ export class SurfaceWorld {
       const nx=CLAMP(a.x+dx/d*step,-10000,10000),
         nz=CLAMP(a.z+dz/d*step,-10000,10000);
       const terrain=this.sample(nx,nz);
-      const canGo=a.type==="bird"||a.type==="marine"?!terrain.land:terrain.land;
+      const canGo=a.type==="bird"||a.type==="marine"?
+        permitted(spec,this.era,terrain):
+        terrain.land&&(a.type==="human"||permitted(spec,this.era,terrain));
       if(canGo||a.type==="bird"){
         a.x=nx;a.z=nz;
         const aim=Math.atan2(dx,dz);
