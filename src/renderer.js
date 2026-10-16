@@ -66,7 +66,7 @@ export class PlanetView {
     const size=width*height;
     if(!this.geographyCache||this.geographyCache.seed!==world.seed){
       const samples=new Float32Array(size),moisture=new Float32Array(size),
-        temperatures=new Float32Array(size),channels=new Float32Array(size),latitudes=new Float32Array(height);
+        temperatures=new Float32Array(size),channels=new Float32Array(size),lakes=new Uint8Array(size),latitudes=new Float32Array(height);
       for(let y=0;y<height;y++){
         const {lat}=globeUVToGeo(0,(y+.5)/height);
         latitudes[y]=lat;
@@ -74,19 +74,20 @@ export class PlanetView {
           const {lon}=globeUVToGeo((x+.5)/width,(y+.5)/height);
           const s=sampleGeography(lat,lon,world.seed,0),index=y*width+x;
           samples[index]=s.elevation;moisture[index]=s.moisture;
-          temperatures[index]=s.temperature;channels[index]=s.channel;
+          temperatures[index]=s.temperature;channels[index]=s.channel;lakes[index]=s.lakeEligible?1:0;
         }
       }
-      this.geographyCache={seed:world.seed,samples,moisture,temperatures,channels,latitudes};
+      this.geographyCache={seed:world.seed,samples,moisture,temperatures,channels,lakes,latitudes};
     }
     const geo=this.geographyCache;
     const image=this.ctx.createImageData(width,height),pixels=image.data;
     const seaLevel=SEA_LEVEL+world.seaShift*.5,era=world.tick;
     for(let y=0;y<height;y++)for(let x=0;x<width;x++){
-      const i=y*width+x,elevation=geo.samples[i],land=elevation>seaLevel,
+      const i=y*width+x,elevation=geo.samples[i],above=elevation-seaLevel,
+        lake=above>0&&above<.048&&geo.lakes[i]===1,land=above>0&&!lake,
         h=(elevation-seaLevel)*17.5,latitude=Math.abs(geo.latitudes[y]),
         moist=geo.moisture[i],temp=geo.temperatures[i];
-      const sample={land,height:h,ice:land&&(latitude>74||temp<-8),
+      const sample={land,height:h,waterKind:lake?"lake":(!land?"ocean":null),ice:land&&(latitude>74||temp<-8),
         river:land&&moist>.45&&h<8&&geo.channels[i]<.075,moisture:moist,
         biome:!land?"ocean":h>8?"alpine":moist>.65?"forest":moist<.35?"dryland":"grassland"};
       const rgb=globeColor(sample,era);
