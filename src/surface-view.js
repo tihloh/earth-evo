@@ -123,6 +123,7 @@ export class SurfaceView{
     const mesh=new THREE.Mesh(geometry,this.terrainMaterial);
     mesh.position.set(centerX,0,centerZ);mesh.receiveShadow=true;
     mesh.userData.tileKey=cx+","+cz;
+    mesh.userData.sharedMaterial=true;
     return mesh;
   }
   updateTiles(force=false){
@@ -195,12 +196,20 @@ export class SurfaceView{
     return root;
   }
   syncAgents(){
+    const available=new Set(this.world.agents.filter(a=>a.active).map(a=>a.id));
+    for(const [id,obj] of this.characters)if(!available.has(id)){
+      this.worldRoot.remove(obj);this.characters.delete(id);
+    }
     for(const a of this.world.agents){
       if(!a.active){const obj=this.characters.get(a.id);if(obj){this.worldRoot.remove(obj);this.characters.delete(a.id)}continue}
       if(!this.characters.has(a.id))this.characters.set(a.id,this.makeAgentMesh(a));
     }
   }
   syncBuildings(){
+    const available=new Set(this.world.structures.map(b=>b.id));
+    for(const [id,obj] of this.structures)if(!available.has(id)){
+      this.worldRoot.remove(obj);this.structures.delete(id);
+    }
     for(const building of this.world.structures){
       if(this.structures.has(building.id))continue;
       const root=new THREE.Group(),base=new THREE.Mesh(new THREE.CylinderGeometry(2.0,2.0,.35,6),m.hut),
