@@ -113,6 +113,9 @@ export function findScenicLocation(kind,seed=42,seaShift=0){
   }
   return best;
 }
+export function globeReliefRadius(sample,planetRadius=2.35){
+  return planetRadius+(sample.land?Math.min(.115,Math.max(0,sample.height)*.0028):0);
+}
 export function globeColor(sample,era=1540){
   const h=sample.height;
   if(era<120){
