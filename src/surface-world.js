@@ -148,6 +148,11 @@ export class SurfaceWorld {
     }
     const known=a.memory.lastFood&&this.trees.find(t=>t.id===a.memory.lastFood&&t.alive&&t.fruit>.5);
     const tree=known&&dist(a,known)<55?known:this.nearest(a,"tree",t=>t.fruit>1||t.wood>0,56);
+    if(a.hunger>37&&a.food<1&&a.personality.courage>.5&&
+      this.rng.next()<.34){
+      const prey=this.nearest(a,"grazer",()=>true,58);
+      if(prey){this.destination(a,prey,"hunting");return}
+    }
     if(a.hunger>42&&a.food<1&&tree&&tree.fruit>0){
       this.destination(a,tree,"collecting food");return;
     }
@@ -187,7 +192,8 @@ export class SurfaceWorld {
     if(a.goal==="hunting"&&target&&target.type==="grazer"&&target.active&&dist(a,target)<3){
       target.health=0;target.active=false;a.hunger=CLAMP(a.hunger-60,0,100);a.energy=CLAMP(a.energy+26,0,100);
       a.skill.survival=CLAMP(a.skill.survival+.12,0,10);
-      this.log("Predator #"+a.id+" hunted grazer #"+target.id);return;
+      if(a.type==="human")a.food+=2;
+      this.log((a.type==="human"?"Human":"Predator")+" #"+a.id+" hunted grazer #"+target.id);return;
     }
     if((a.goal==="foraging"||a.goal==="collecting food")&&target?.fruit>0){
       const n=Math.min(target.fruit,a.type==="human"?2:1.5);target.fruit-=n;
