@@ -2,11 +2,13 @@
 // not a conscious mind or a historical reconstruction. No Three.js dependency.
 import {RNG} from "./simulation.js";
 import {sampleLocal} from "./geography.js";
+import {SPECIES,PLANTS,chooseSpecies,choosePlant,permitted,humanStyle} from "./era-ecology.js";
+import {detailedPhysicalFeature} from "./physical-features.js";
 
 export const REGION_SIZE = 180;
 // Initial spawn extent only; terrain itself is streamed without a square boundary.
 const CLAMP=(v,a,b)=>Math.max(a,Math.min(b,v));
-const TYPES=["human","grazer","predator","bird"];
+const TYPES=["human","grazer","predator","bird","marine"];
 function dist(a,b){return Math.hypot(a.x-b.x,a.z-b.z)}
 export class SurfaceWorld {
   constructor(seed=42,era=1490,lat=5,lon=0,seaShift=0){
@@ -15,12 +17,17 @@ export class SurfaceWorld {
     this.rng=new RNG(this.terrainSeed||7);
     this.time=0;this.elapsed=0;this.nextId=1;this.agents=[];this.trees=[];this.undergrowth=[];
     this.structures=[];this.events=[];this.rain=0;this.fertility=1;
+    this.weather="clear";this.weatherTimer=0;this.wind=0;this.weatherIntensity=0;
     this.village={x:-12,z:-14,wood:0,food:14};
     this.lastBirth=0;this.lastSeed=0;
     this.populate();
   }
   sample(x,z){return sampleLocal(x,z,this.lat,this.lon,this.seed,this.seaShift)}
   height(x,z){return this.sample(x,z).height}
+  featureAt(x,z){
+    const g=this.sample(x,z);
+    return detailedPhysicalFeature(g,(dx,dz)=>this.sample(x+dx,z+dz));
+  }
   isLand(x,z){return this.sample(x,z).land}
   location(prefer={x:0,z:0},range=65){
     for(let t=0;t<100;t++){
@@ -36,71 +43,93 @@ export class SurfaceWorld {
     return {height:g.height,shore:g.river?0:g.height<2?6:30,moisture:g.moisture};
   }
   chooseTreeSpecies(x,z){
-    const biome=this.vegetationBiome(x,z);
-    // Avoid modern-looking broadleaf forests before their rough historical appearance.
-    if(this.era<1010)return this.rng.next()<.7?"cedar":"pine";
-    const roll=this.rng.next();
-    if(biome.shore<10&&biome.height<3)return roll<.63?"willow":"mangrove";
-    if(biome.height>5)return roll<.8?"pine":"cedar";
-    if(biome.moisture<.38)return roll<.65?"acacia":"palm";
-    if(Math.abs(this.lat)<23&&biome.height<2.5&&roll<.28)return "palm";
-    return roll<.49?"oak":roll<.72?"birch":roll<.87?"pine":"cedar";
+    return choosePlant(this.era,this.sample(x,z),this.rng,true);
   }
   spawnTree(x,z){
-    if(!this.isLand(x,z)||this.trees.length>=600)return null;
+    if(!this.isLand(x,z)||this.trees.length>=800)return null;
     const species=this.chooseTreeSpecies(x,z);
+    if(!species)return null;
     const t={id:this.nextId++,x,z,species,
-      size:this.rng.between(.75,1.6),fruit:this.rng.between(1,5),
+      size:this.rng.between(.65,1.65),fruit:this.rng.between(1,5),
       wood:this.rng.between(1,3),alive:true};
     this.trees.push(t);return t;
   }
   growGroundCover(count=650){
     if(this.era<870)return;
-    for(let i=0;i<count&&this.undergrowth.length<1200;i++){
+    for(let i=0;i<count&&this.undergrowth.length<2000;i++){
       const x=this.rng.between(-87,87),z=this.rng.between(-87,87);
-      if(!this.isLand(x,z)||this.height(x,z)>12)continue;
-      const b=this.vegetationBiome(x,z),roll=this.rng.next();
-      let species;
-      if(this.era<1010)species=b.shore<9?"reed":"fern";
-      else if(b.shore<9)species=roll<.68?"reed":"fern";
-      else if(b.height>4)species=roll<.63?"fern":"heather";
-      else if(b.moisture<.3)species=roll<.7?"scrub":"grass";
-      else species=roll<.35?"grass":roll<.61?"flower":roll<.85?"bush":"fern";
-      this.undergrowth.push({x,z,species,size:this.rng.between(.55,1.3),angle:this.rng.between(0,Math.PI*2)});
+      const g=this.sample(x,z);if(!g.land||g.height>12)continue;
+      const species=choosePlant(this.era,g,this.rng,false);
+      // Modern groundcover families are post-flowering-plant approximations.
+      const modern=["grass","flower","bush","fern","heather","reed","scrub"];
+      const roll=this.rng.next();
+      const ground=this.era>=1120?(g.river?"reed":modern[Math.floor(roll*modern.length)]):
+        species|| (this.era>=900?"clubmoss":"earlyMoss");
+      this.undergrowth.push({x,z,species:ground,
+        size:this.rng.between(.55,1.3),angle:this.rng.between(0,Math.PI*2)});
     }
   }
-  spawn(type,x,z){
-    if(!TYPES.includes(type)||!this.isLand(x,z)||this.agents.length>=190)return null;
-    if(type==="human"&&this.era<1250)return null;
-    if(type==="bird"&&this.era<1010)return null;
-    const a={id:this.nextId++,type,x,z,rotation:this.rng.between(0,Math.PI*2),
-      hunger:this.rng.between(0,35),energy:this.rng.between(40,100),health:100,
+  spawn(type,x,z,speciesOverride=null){
+    if(!TYPES.includes(type)||this.agents.length>=190)return null;
+    const g=this.sample(x,z);
+    const species=speciesOverride||chooseSpecies(this.era,g,this.rng,type);
+    if(!species||!SPECIES[species]||SPECIES[species].guild!==type||
+      !permitted(SPECIES[species],this.era,g))return null;
+    const definition=SPECIES[species];
+    const a={id:this.nextId++,type,species,habitat:definition.habitat,x,z,
+      rotation:this.rng.between(0,Math.PI*2),size:definition.size,
+      hunger:this.rng.between(0,35),thirst:this.rng.between(4,32),
+      energy:this.rng.between(40,100),health:100,
       age:0,goal:"exploring",reason:"Curious about the surroundings",
       personality:{curiosity:this.rng.between(0,1),courage:this.rng.between(0,1),
         sociability:this.rng.between(0,1),diligence:this.rng.between(0,1)},
-      memory:{lastFood:null,lastDanger:null},skill:{survival:0,craft:0},
-      target:null,decision:0,carried:0,food:0,active:true,altitude:0};
+      memory:{lastFood:null,lastDanger:null,lastWater:null,lastCompanion:null},
+      skill:{survival:0,craft:0},style:type==="human"?humanStyle(this.era,g):null,
+      target:null,decision:0,carried:0,food:0,active:true,
+      altitude:0,motion:{speed:0,mode:"idle",stride:0},familyId:null};
     this.agents.push(a);return a;
   }
   populate(){
-    this.village=this.location({x:-12,z:-14},25);this.village.wood=0;this.village.food=14;
-    const trees=this.era>=870?280:0;
-    for(let i=0;i<trees;i++){const p=this.location({x:0,z:0},85);this.spawnTree(p.x,p.z)}
+    this.village=this.location({x:-12,z:-14},25);
+    this.village.wood=0;this.village.food=14;
+    if(this.era>=890){
+      for(let i=0;i<280;i++){
+        const p=this.location({x:0,z:0},85);this.spawnTree(p.x,p.z);
+      }
+    }
     this.growGroundCover(950);
     if(this.era>=760){
-      for(let i=0;i<35;i++){const p=this.location({x:-15,z:8},60);this.spawn("grazer",p.x,p.z)}
-      for(let i=0;i<9;i++){const p=this.location({x:18,z:-9},70);this.spawn("predator",p.x,p.z)}
+      let created=0,tries=0;
+      while(created<24&&tries++<320){
+        const x=this.rng.between(-88,88),z=this.rng.between(-88,88);
+        if(this.spawn("marine",x,z))created++;
+      }
     }
-    if(this.era>=1010)for(let i=0;i<16;i++){const p=this.location();this.spawn("bird",p.x,p.z)}
+    if(this.era>=895){
+      for(let i=0;i<35;i++){
+        const p=this.location({x:-15,z:8},60);this.spawn("grazer",p.x,p.z);
+      }
+    }
+    if(this.era>=955){
+      for(let i=0;i<9;i++){
+        const p=this.location({x:18,z:-9},70);this.spawn("predator",p.x,p.z);
+      }
+    }
+    if(this.era>=1020)for(let i=0;i<16;i++){
+      const p=this.location();this.spawn("bird",p.x,p.z);
+    }
     if(this.era>=1250){
-      let humans=this.era>=1310?14:6;
-      for(let i=0;i<humans;i++){const p=this.location(this.village,22);this.spawn("human",p.x,p.z)}
+      const humans=this.era>=1310?14:6;
+      for(let i=0;i<humans;i++){
+        const p=this.location(this.village,22);this.spawn("human",p.x,p.z);
+      }
     }
-    if(this.era>=1310){
+    if(this.era>=1310&&this.counts.human>0){
       this.village.wood=9;
       for(let i=0;i<2;i++){
         const p=this.location(this.village,8);
-        this.structures.push({id:this.nextId++,x:p.x,z:p.z,progress:1,type:"hut"});
+        if(this.isLand(p.x,p.z))
+          this.structures.push({id:this.nextId++,x:p.x,z:p.z,progress:1,type:"hut"});
       }
     }
     this.log("The region begins its autonomous life");
