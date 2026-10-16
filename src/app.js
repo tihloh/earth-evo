@@ -176,8 +176,8 @@ function renderTimeline(){
     button.setAttribute("aria-current",Number(button.dataset.tick)===era.t?"step":"false");
   }
 }
-function refresh(){
-  view.update(world,true);
+function refresh(force=false){
+  view.update(world,force);
   if(localActive)createSurface();
   renderTimeline();
   $("temperature").textContent=Math.round(world.temperature)+" °C";
@@ -243,7 +243,7 @@ $("nextEra").addEventListener("click",()=>{
 $("speed").addEventListener("change",e=>{speed=Number(e.target.value)});
 $("restart").addEventListener("click",()=>{
   setPlaying(false);world=new World(Number($("seed").value)||42);
-  $("previewClock").textContent="";refresh();
+  $("previewClock").textContent="";refresh(true);
 });
 $("seed").addEventListener("keydown",e=>{if(e.key==="Enter")$("restart").click()});
 document.querySelectorAll("[data-intervention]").forEach(button=>button.addEventListener("click",()=>{
@@ -277,7 +277,7 @@ $("loadFile").addEventListener("change",async event=>{
       world=World.deserialize(JSON.stringify(data));
       localWorld=null;localEra=-1;localSeed=-1;
     }
-    $("seed").value=String(world.seed);setPlaying(false);refresh();
+    $("seed").value=String(world.seed);setPlaying(false);refresh(true);
     $("status").textContent="Simulation loaded.";
   }catch(error){$("status").textContent="Unable to load save: "+error.message}
   event.target.value="";
@@ -299,4 +299,4 @@ function animate(now){
   requestAnimationFrame(animate);
 }
 $("previewClock").textContent="";
-refresh();requestAnimationFrame(animate);
+refresh(true);requestAnimationFrame(animate);
