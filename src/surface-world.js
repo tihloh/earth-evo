@@ -27,7 +27,7 @@ export class SurfaceWorld {
     this.seed=(seed>>>0)||42;this.era=era;this.lat=lat;this.lon=lon;
     this.terrainSeed=(this.seed+Math.round(lat*37)+Math.round(lon*19))>>>0;
     this.rng=new RNG(this.terrainSeed||7);
-    this.time=0;this.elapsed=0;this.nextId=1;this.agents=[];this.trees=[];
+    this.time=0;this.elapsed=0;this.nextId=1;this.agents=[];this.trees=[];this.undergrowth=[];
     this.structures=[];this.events=[];this.rain=0;this.fertility=1;
     this.village={x:-12,z:-14,wood:0,food:14};
     this.lastBirth=0;this.lastSeed=0;
@@ -44,10 +44,43 @@ export class SurfaceWorld {
     return {x:0,z:0};
   }
   log(message){this.events.unshift({time:Math.floor(this.time),message});if(this.events.length>25)this.events.length=25}
+  vegetationBiome(x,z){
+    const height=this.height(x,z);
+    const shore=Math.abs(x-riverX(z,this.terrainSeed));
+    const moisture=Math.max(0,Math.min(1,.55+.25*Math.sin(z*.041+x*.024)+
+      (shore<13?.40:0)-Math.max(0,height-3)*.035));
+    return {height,shore,moisture};
+  }
+  chooseTreeSpecies(x,z){
+    const biome=this.vegetationBiome(x,z);
+    const roll=this.rng.next();
+    if(biome.shore<10&&biome.height<3)return roll<.63?"willow":"mangrove";
+    if(biome.height>5)return roll<.8?"pine":"cedar";
+    if(biome.moisture<.38)return roll<.65?"acacia":"palm";
+    if(Math.abs(this.lat)<23&&biome.height<2.5&&roll<.28)return "palm";
+    return roll<.49?"oak":roll<.72?"birch":roll<.87?"pine":"cedar";
+  }
   spawnTree(x,z){
     if(!this.isLand(x,z)||this.trees.length>=600)return null;
-    const t={id:this.nextId++,x,z,size:this.rng.between(.75,1.6),fruit:this.rng.between(1,5),wood:this.rng.between(1,3),alive:true};
+    const species=this.chooseTreeSpecies(x,z);
+    const t={id:this.nextId++,x,z,species,
+      size:this.rng.between(.75,1.6),fruit:this.rng.between(1,5),
+      wood:this.rng.between(1,3),alive:true};
     this.trees.push(t);return t;
+  }
+  growGroundCover(count=650){
+    if(this.era<870)return;
+    for(let i=0;i<count&&this.undergrowth.length<1200;i++){
+      const x=this.rng.between(-87,87),z=this.rng.between(-87,87);
+      if(!this.isLand(x,z)||this.height(x,z)>12)continue;
+      const b=this.vegetationBiome(x,z),roll=this.rng.next();
+      let species;
+      if(b.shore<9)species=roll<.68?"reed":"fern";
+      else if(b.height>4)species=roll<.63?"fern":"heather";
+      else if(b.moisture<.3)species=roll<.7?"scrub":"grass";
+      else species=roll<.35?"grass":roll<.61?"flower":roll<.85?"bush":"fern";
+      this.undergrowth.push({x,z,species,size:this.rng.between(.55,1.3),angle:this.rng.between(0,Math.PI*2)});
+    }
   }
   spawn(type,x,z){
     if(!TYPES.includes(type)||!this.isLand(x,z)||this.agents.length>=190)return null;
@@ -66,6 +99,7 @@ export class SurfaceWorld {
     this.village=this.location({x:-12,z:-14},25);this.village.wood=0;this.village.food=14;
     const trees=this.era>=870?280:0;
     for(let i=0;i<trees;i++){const p=this.location({x:0,z:0},85);this.spawnTree(p.x,p.z)}
+    this.growGroundCover(950);
     if(this.era>=760){
       for(let i=0;i<35;i++){const p=this.location({x:-15,z:8},60);this.spawn("grazer",p.x,p.z)}
       for(let i=0;i<9;i++){const p=this.location({x:18,z:-9},70);this.spawn("predator",p.x,p.z)}
@@ -308,6 +342,7 @@ export class SurfaceWorld {
   }
   toJSON(){
     return {version:1,seed:this.seed,era:this.era,lat:this.lat,lon:this.lon,
+      undergrowth:this.undergrowth.map(p=>({...p})),
       rng:this.rng.value,time:this.time,elapsed:this.elapsed,nextId:this.nextId,
       trees:this.trees.map(t=>({...t})),agents:this.agents.map(a=>({
         ...a,personality:{...a.personality},memory:{...a.memory},
@@ -337,6 +372,12 @@ export class SurfaceWorld {
     w.agents=save.agents.map(a=>({...a,personality:{...a.personality},
       memory:{...a.memory},skill:{...a.skill},target:a.target?{...a.target}:null}));
     w.trees=save.trees.map(t=>({...t}));w.structures=save.structures.map(s=>({...s}));
+    if(save.undergrowth!==undefined){
+      if(!Array.isArray(save.undergrowth)||save.undergrowth.length>1200||
+        save.undergrowth.some(p=>!Number.isFinite(p.x)||!Number.isFinite(p.z)||
+          Math.abs(p.x)>90||Math.abs(p.z)>90))throw Error("Invalid ground cover");
+      w.undergrowth=save.undergrowth.map(p=>({...p}));
+    }
     w.events=Array.isArray(save.events)?save.events.slice(0,25).map(e=>({...e})):[];
     w.village={...save.village};
     w.rain=Number(save.rain)||0;w.fertility=Number(save.fertility)||1;
