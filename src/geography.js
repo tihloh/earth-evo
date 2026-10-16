@@ -53,7 +53,13 @@ export function sampleGeography(lat,lon,seed=42,seaShift=0){
   const temperature=27-41*latitude/90-9*Math.max(0,above);
   // One canonical elevation-to-height conversion for planet and region.
   const height=above*17.5;
-  const land=above>0;
+  const lakeEligible=moisture>.68&&Math.sin(lat*.29+lon*.37+seed*.03)>.74;
+  const lake=above>0&&above<.048&&lakeEligible;
+  const land=above>0&&!lake;
+  const coastal=Math.abs(height)<2.0;
+  const marineRegion=Math.sin(lon*.16-lat*.22+seed*.006);
+  const waterKind=lake?"lake":!land?(coastal&&marineRegion>.66?"lagoon":
+    coastal||marineRegion>.34?"sea":"ocean"):null;
   const a=lat*RAD,b=lon*RAD;
   const x=Math.cos(a)*Math.cos(b),y=Math.sin(a),z=Math.cos(a)*Math.sin(b);
   // Procedural watersheds use the same spherical coordinate function in both views.
@@ -63,9 +69,10 @@ export function sampleGeography(lat,lon,seed=42,seaShift=0){
   const alpine=height>8;
   const ice=latitude>74||temperature<-8;
   const wet=moisture>.65;
-  const biome=!land?"ocean":river?"river":ice?"ice":alpine?"alpine":
+  const biome=!land?waterKind:river?"river":ice?"ice":alpine?"alpine":
     wet?"forest":moisture<.35?"dryland":"grassland";
-  return {lat,lon,elevation,seaLevel,height,land,river,channel,moisture,temperature,biome};
+  return {lat,lon,elevation,seaLevel,height,land,lake,lakeEligible,coastal,waterKind,
+    river,channel,moisture,temperature,biome};
 }
 export function sampleLocal(x,z,originLat,originLon,seed=42,seaShift=0){
   const p=localToGeo(x,z,originLat,originLon);
@@ -78,6 +85,8 @@ export function globeColor(sample,era=1540){
     return [clamp(91+119*lava+h*4,0,255),clamp(35+38*lava,0,255),29];
   }
   if(!sample.land){
+    if(sample.waterKind==="lake")return [34,102,144];
+    if(sample.waterKind==="lagoon")return [32,125,144];
     const coast=clamp(1+sample.height/4,0,1);
     return [Math.round(9+23*coast),Math.round(52+52*coast),Math.round(102+58*coast)];
   }
