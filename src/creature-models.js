@@ -183,32 +183,82 @@ function flying(a){
 }
 function marine(a){
  const root=new THREE.Group(),body=new THREE.Group();root.add(body);
- const species=a.species,base=species==="trilobite"?0x807c63:
-   species==="ammonoid"?0x97866f:0x54879b;
- if(species==="ammonoid"){
-   part(body,"orb",base,0,.40,0,.74,.68,.34);
-   part(body,"torus",0xd8c6a2,0,.4,.36,.55,.50,.48);
-   for(let i=0;i<6;i++)part(body,"cone",0xab9071,Math.sin(i)*.25,.3,.45,
-     .10,.32,.10,Math.PI/2);
- }else if(species==="trilobite"){
-   part(body,"orb",base,0,.24,0,.50,.18,.92);
+ const species=a.species;
+ const tint={jellyfish:0xa799cd,horseshoeCrab:0x927b62,trilobite:0x807c63,
+  earlyFish:0x639ba5,shark:0x6c8191,stingray:0x83979c,
+  ammonoid:0x97866f,seaTurtle:0x638c79,dolphin:0x789ba6,whale:0x728f9d}[species]||0x7497a6;
+ if(species==="jellyfish"){
+   part(body,"orb",0xb1a4c9,0,.82,0,.73,.40,.74);
+   part(body,"torus",0x947ca6,0,.54,0,.69,.12,.68,Math.PI/2);
    for(let i=0;i<8;i++){
-     const z=-.67+i*.18;
-     part(body,"box",i%2?0xb1a88c:base,0,.35,z,.8,.13,.12);
+     const theta=i*Math.PI/4;
+     part(body,"leg",i%2?0xa3a0c9:0xceb9ce,
+       Math.cos(theta)*.40,-.08,Math.sin(theta)*.40,.08,1.26,.08);
    }
-   part(body,"orb",base,0,.30,.73,.42,.22,.31);
-   for(const side of [-1,1])part(body,"eye",0x222222,side*.27,.46,.80,.05,.04,.03);
- }else{
-   part(body,"orb",base,0,.38,0,.40,.41,1.05);
-   part(body,"cone",base,0,.39,-1.18,.46,.95,.26,Math.PI/2);
-   part(body,"cone",0x6998a4,0,.79,-.15,.13,.55,.40);
+ }else if(species==="horseshoeCrab"||species==="trilobite"){
+   const tril=species==="trilobite";
+   part(body,"orb",tint,0,.26,0,.56,.20,tril?.94:.75);
+   if(tril)for(let i=0;i<8;i++){
+     part(body,"box",i%2?0xb7ac8d:tint,0,.36,-.72+i*.2,.88,.13,.11);
+   }else{
+     part(body,"orb",0x9a8765,0,.35,.23,.56,.12,.53);
+     part(body,"cone",0x4e473e,0,.32,-1.16,.12,1.33,.12,Math.PI/2);
+   }
    for(const side of [-1,1]){
-     part(body,"cone",0x82acb7,side*.40,.36,.1,.12,.50,.28,0,0,side*.7);
-     part(body,"eye",0xf7e6ca,side*.34,.53,.65,.09,.09,.05);
-     part(body,"eye",0x202831,side*.35,.54,.69,.04,.04,.025);
+     part(body,"eye",0x252521,side*.28,.43,.62,.075,.07,.04);
+     for(let i=0;i<4;i++)
+       part(body,"leg",0x746a53,side*(.54+i*.05),.06,.50-i*.32,.08,.35,.08,0,0,side*.48);
    }
+ }else if(species==="ammonoid"){
+   part(body,"orb",tint,0,.45,-.19,.77,.65,.43);
+   for(let r=0;r<3;r++)part(body,"torus",r%2?0xb6a284:0xdbc7a0,
+     0,.45,.24,.55-r*.15,.48-r*.14,.34,0,0,0);
+   part(body,"cone",0x997a65,0,.22,.54,.35,.66,.32,Math.PI/2);
+   for(let i=0;i<7;i++)part(body,"leg",0xb4a48b,
+     Math.sin(i)*.23,-.1,.84,.065,.6,.065,0,0,.20);
+ }else if(species==="stingray"){
+   part(body,"orb",tint,0,.23,.07,1.29,.15,.77);
+   part(body,"cone",0x677f7d,0,.24,-1.18,.10,1.87,.10,Math.PI/2);
+   for(const side of [-1,1]){
+     part(body,"orb",tint,side*1.13,.25,.1,.87,.095,.52,0,0,side*.12);
+     part(body,"eye",0x292a29,side*.32,.43,.57,.085,.08,.06);
+   }
+ }else if(species==="seaTurtle"){
+   part(body,"orb",0x5e6d4d,0,.44,0,.78,.42,1.0);
+   part(body,"orb",0x7a946b,0,.63,-.05,.72,.32,.90);
+   for(let i=0;i<6;i++){
+     const a=i*Math.PI/3;
+     part(body,"low",0x8aa181,Math.sin(a)*.45,.84,Math.cos(a)*.53,.24,.12,.29);
+   }
+   part(body,"orb",tint,0,.35,.83,.34,.26,.40);
+   for(const side of [-1,1]){
+     part(body,"eye",0x25312d,side*.26,.43,1.06,.08,.08,.05);
+     part(body,"orb",tint,side*.94,.2,.25,.65,.13,.40,0,0,side*.28);
+     part(body,"orb",tint,side*.67,.2,-.84,.43,.11,.32);
+   }
+ }else{
+   const whale=species==="whale",dolphin=species==="dolphin",shark=species==="shark";
+   const length=whale?1.68:dolphin?1.25:shark?1.30:1.04;
+   part(body,"orb",tint,0,.43,0,whale?.78:.47,whale?.60:.37,length);
+   part(body,"orb",shark?0xc9d0cd:0xd9e1db,0,.22,.14,
+     whale?.62:.39,.20,length*.75);
+   if(shark)part(body,"cone",0x718997,0,1.06,-.14,.30,1.02,.25);
+   else if(dolphin||whale)part(body,"cone",0x6f9eac,0,.97,-.27,.23,.50,.22);
+   else part(body,"cone",0x76a4aa,0,.88,-.05,.21,.56,.22);
+   const tail=new THREE.Group();tail.position.set(0,.41,-length);body.add(tail);
+   part(tail,"cone",tint,0,0,-.68,whale?.37:.24,1.30,.21,Math.PI/2);
+   for(const side of [-1,1]){
+     part(body,"cone",tint,side*.53,.29,.05,.23,.82,.22,0,0,side*(shark?.85:.50));
+     part(body,"eye",0xe7e7d5,side*(whale?.67:.42),.55,.55,.082,.074,.043);
+     part(body,"eye",0x172832,side*(whale?.68:.43),.56,.59,.038,.04,.027);
+     if(shark)for(let i=0;i<4;i++)part(body,"box",0x526a75,
+       side*.40,.46,.28-i*.16,.025,.17,.047);
+   }
+   if(dolphin)part(body,"orb",tint,0,.36,1.28,.24,.17,.51);
+   if(whale||dolphin)part(body,"round" in geo?"round":"orb",0x263b4c,0,.97,.42,.10,.06,.06);
+   root.userData={body,tail,modelFamily:species};return root;
  }
- root.userData={body,tail:body};return root;
+ root.userData={body,tail:body,modelFamily:species};return root;
 }
 function human(a){
  const root=new THREE.Group(),body=new THREE.Group();root.add(body);
