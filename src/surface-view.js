@@ -164,7 +164,7 @@ export class SurfaceView{
   }
   buildTerrain(){this.updateTiles(true)}
   makeTerrainTile(cx,cz,lod=0){
-    const size=STREAM_CHUNK_SIZE,segments=lod===0?32:lod===1?12:4;
+    const size=STREAM_CHUNK_SIZE,segments=lod===0?32:lod===1?16:4;
     const geometry=new THREE.PlaneGeometry(size,size,segments,segments);
     geometry.rotateX(-Math.PI/2);
     const positions=geometry.attributes.position,colors=[];
