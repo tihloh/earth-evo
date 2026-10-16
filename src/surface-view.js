@@ -30,7 +30,7 @@ export class SurfaceView{
     this.scene=new THREE.Scene();this.scene.background=new THREE.Color(world.era<120?0x684c43:0xa1c7e4);
     this.fogMode="weather";this.weatherChoice="auto";
     this.scene.fog=new THREE.FogExp2(0xa1c7e4,.006);
-    this.camera=new THREE.PerspectiveCamera(55,1,.1,1200);
+    this.camera=new THREE.PerspectiveCamera(55,1,.035,1200);
     this.camera.position.set(47,64,85);
     this.renderer=new THREE.WebGLRenderer({canvas,antialias:true});
     this.renderer.outputColorSpace=THREE.SRGBColorSpace;
@@ -38,7 +38,7 @@ export class SurfaceView{
     this.renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.5));
     this.controls=new OrbitControls(this.camera,canvas);
     configurePrecisionCamera(this.controls,"surface",2);
-    this.controls.minDistance=4;this.controls.maxDistance=170;
+    this.controls.minDistance=.8;this.controls.maxDistance=170;
     this.controls.maxPolarAngle=Math.PI/2-.07;this.controls.minPolarAngle=.08;
     this.controls.target.set(0,2,0);
     this.scene.add(new THREE.HemisphereLight(0xdff4fc,0x748367,2.2));
