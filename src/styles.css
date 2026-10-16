@@ -73,3 +73,30 @@ p{color:#acc1d0;line-height:1.7}
   #globeViewport{height:470px;flex:none;min-height:360px}.timeline-panel{padding:15px}
   .bottom{padding:10px;text-align:center}.chip{font-size:.64rem}
 }
+
+
+/* Multiscale surface explorer */
+[hidden]{display:none!important}
+#surfaceViewport{position:relative;flex:1;min-height:475px;overflow:hidden;background:linear-gradient(#9ec7e6,#bfd7b1)}
+#surface{display:block;width:100%;height:100%;touch-action:none;cursor:grab}
+#surface:active{cursor:grabbing}
+.enter-surface{position:absolute;right:22px;top:19px;z-index:4;background:#0b3049e8;border:1px solid #5cc9c4;box-shadow:0 6px 25px #0005;color:#b9f9ee;font-weight:700}
+.globe-select-hint{position:absolute;z-index:4;right:22px;bottom:18px;max-width:200px;font-size:.75rem;text-align:right;color:#bfd3e3;pointer-events:none}
+.surface-overlay{position:absolute;pointer-events:none;z-index:4;color:#edf7ff;text-shadow:0 1px 4px #051725}
+.surface-overlay.top{display:flex;align-items:center;gap:12px;top:16px;left:20px;right:15px;flex-wrap:wrap}
+.surface-overlay.top button{pointer-events:auto;background:#173650db}
+.surface-overlay.bottom{bottom:14px;left:20px;right:20px;font-size:.78rem}
+.surface-caption{padding:8px 12px;border-radius:10px;background:#102638c9;font-size:.78rem}
+.god-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+.god-grid button{font-size:.77rem;padding:9px 5px;min-height:39px}
+.god-grid button.selected{background:#276d70;border-color:#80dfd7;color:#fff}
+.inspector{padding:12px;border-radius:9px;background:#122e40;border:1px solid #315265;color:#c4e4f0;font-size:.85rem;min-height:60px}
+.inspector .goal{color:#9fecd9;font-weight:700}
+.mini{font-size:.77rem;margin:8px 0 13px}
+#localPanel{padding-bottom:20px;border-bottom:1px solid var(--edge);margin-bottom:22px}
+#localPanel .notice{font-size:.73rem}
+@media(max-width:1150px){#surfaceViewport{height:520px;min-height:420px;flex:none}}
+@media(max-width:710px){#surfaceViewport{height:470px;min-height:320px}
+  .surface-overlay.top{top:12px;left:12px}.surface-overlay.bottom{left:12px;right:12px}
+  .enter-surface{right:12px;top:18px}
+  #localPanel .god-grid{grid-template-columns:repeat(2,1fr)}}
