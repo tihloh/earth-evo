@@ -16,6 +16,7 @@ let pendingSeek=null,seekFrame=false,rendering=false;
 let localActive=false,localView=null,localWorld=null,localEra=-1,localSeed=-1;
 let focus={lat:-20,lon:-55},inspectedId=null,lastLocalUi=0;
 let focusPinned=false,transitionToken=0;
+const lastGlobeZoomPointer=new THREE.Vector2(0,0);
 const continuousZoom=new ZoomContinuum();
 let zoomTransitionBusy=false;
 const hudState={left:window.innerWidth>850,right:window.innerWidth>710};
@@ -120,8 +121,14 @@ function createSurface(force=false){
 // geometry/scale domains; the crossfade avoids a hard blank-screen cut.
 function centerPlanetFocus(){
   const ray=new THREE.Raycaster();
-  ray.setFromCamera(new THREE.Vector2(0,0),view.camera);
-  const hit=ray.intersectObject(view.planet)[0];
+  // OrbitControls.zoomToCursor targets the mouse pointer. Descent must sample
+  // that SAME globe position; using screen center landed in unrelated oceans.
+  ray.setFromCamera(lastGlobeZoomPointer,view.camera);
+  let hit=ray.intersectObject(view.planet)[0];
+  if(!hit){
+    ray.setFromCamera(new THREE.Vector2(0,0),view.camera);
+    hit=ray.intersectObject(view.planet)[0];
+  }
   if(!hit)return focus;
   const radial=view.root.worldToLocal(hit.point.clone()).normalize();
   return {lat:Math.asin(radial.y)*180/Math.PI,
@@ -469,6 +476,11 @@ $("loadFile").addEventListener("change",async event=>{
 // camera radius. Capture every inward gesture and escalate to finer terrain LOD.
 $("globe").addEventListener("wheel",event=>{
   if(localActive||zoomTransitionBusy)return;
+  const rect=$("globe").getBoundingClientRect();
+  lastGlobeZoomPointer.set(
+    (event.clientX-rect.left)/Math.max(1,rect.width)*2-1,
+    1-(event.clientY-rect.top)/Math.max(1,rect.height)*2
+  );
   const distance=view.camera.position.distanceTo(view.controls.target);
   continuousZoom.wheel(event.deltaY,event.deltaMode,distance);
   if(event.deltaY<0&&(
