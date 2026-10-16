@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import {OrbitControls} from "three/addons/controls/OrbitControls.js";
 import {REGION_SIZE,riverX} from "./surface-world.js";
+import {configurePrecisionCamera,setCameraGlide,confineSurfaceTarget} from "./camera-controls.js";
 
 const color=(hex)=>new THREE.MeshStandardMaterial({color:hex,roughness:1,flatShading:true});
 const m={trunk:color(0x65452e),leaf:color(0x4c9860),leaf2:color(0x60ac64),
@@ -23,7 +24,8 @@ export class SurfaceView{
     this.renderer.shadowMap.enabled=true;this.renderer.shadowMap.type=THREE.PCFSoftShadowMap;
     this.renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.5));
     this.controls=new OrbitControls(this.camera,canvas);
-    this.controls.enableDamping=true;this.controls.minDistance=7;this.controls.maxDistance=170;
+    configurePrecisionCamera(this.controls,"surface",2);
+    this.controls.minDistance=4;this.controls.maxDistance=170;
     this.controls.maxPolarAngle=Math.PI/2-.07;this.controls.minPolarAngle=.08;
     this.controls.target.set(0,2,0);
     this.scene.add(new THREE.HemisphereLight(0xdff4fc,0x748367,2.2));
@@ -40,9 +42,8 @@ export class SurfaceView{
       if(!this.pointerDown||Math.hypot(e.clientX-this.pointerDown.x,e.clientY-this.pointerDown.y)>7)return;
       this.interact(e);
     };
-    this.onWheel=e=>{
-      if(e.deltaY>0&&this.camera.position.distanceTo(this.controls.target)>158)this.onExit();
-    };
+    // Explicit Return to planet prevents a zoom-out gesture from switching modes unexpectedly.
+    this.onWheel=()=>{};
     canvas.addEventListener("pointerdown",this.onDown);
     canvas.addEventListener("pointerup",this.onUp);
     canvas.addEventListener("wheel",this.onWheel,{passive:true});
@@ -52,6 +53,7 @@ export class SurfaceView{
     this.running=true;this.previous=performance.now();this.frame=this.frame.bind(this);
     requestAnimationFrame(this.frame);
   }
+  setGlide(value){setCameraGlide(this.controls,value)}
   setAction(action){this.action=action}
   setWorld(world){this.world=world;this.followAgentId=null;this.rebuild()}
   addObj(mesh,x,y,z,parent=this.worldRoot){
@@ -286,7 +288,8 @@ export class SurfaceView{
         this.controls.target.add(delta);this.camera.position.add(delta);
       }else this.followAgentId=null;
     }
-    this.controls.update();this.renderer.render(this.scene,this.camera);
+    this.controls.update();confineSurfaceTarget(this.controls,this.camera);
+    this.renderer.render(this.scene,this.camera);
     requestAnimationFrame(this.frame);
   }
   dispose(){
