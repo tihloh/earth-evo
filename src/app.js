@@ -11,6 +11,25 @@ let playing=false,speed=12,accumulator=0,lastFrame=performance.now();
 let pendingSeek=null,seekFrame=false,rendering=false;
 let localActive=false,localView=null,localWorld=null,localEra=-1,localSeed=-1;
 let focus={lat:5,lon:10},inspectedId=null,lastLocalUi=0;
+const hudState={left:window.innerWidth>850,right:window.innerWidth>710};
+function setHud(side,opened){
+  if(side!=="left"&&side!=="right")return;
+  hudState[side]=Boolean(opened);
+  document.body.classList.toggle("hud-hide-"+side,!hudState[side]);
+  const button=$(side==="left"?"toggleLeft":"toggleRight");
+  button.setAttribute("aria-expanded",String(hudState[side]));
+  button.classList.toggle("selected",hudState[side]);
+}
+setHud("left",hudState.left);
+setHud("right",hudState.right);
+$("toggleLeft").addEventListener("click",()=>setHud("left",!hudState.left));
+$("toggleRight").addEventListener("click",()=>setHud("right",!hudState.right));
+$("cameraGlide").addEventListener("change",e=>{
+  const value=Number(e.target.value);
+  view.setGlide(value);
+  if(localView)localView.setGlide(value);
+});
+
 function createSurface(force=false){
   if(!localActive)return;
   const era=eraAt(world.tick).t;
@@ -28,13 +47,17 @@ function enterSurface(){
   $("globeViewport").hidden=true;
   $("surfaceViewport").hidden=false;
   $("localPanel").hidden=false;
-  createSurface(true);
+  createSurface(false);
   if(!localView)localView=new SurfaceView($("surface"),$("surfaceViewport"),localWorld,{
     onSelect:showInspection,
     onExit:leaveSurface,
     onAction:()=>updateLocalUi(true)
   });
   localView.visible=true;localView.speed=Number($("localSpeed").value);
+  localView.setGlide(Number($("cameraGlide").value));
+  localView.resize();
+  setHud("left",false);
+  setHud("right",true);
   $("localLabel").textContent="Surface region · "+Math.abs(focus.lat).toFixed(1)+"°"+
     (focus.lat>=0?" N":" S")+" · "+Math.abs(focus.lon).toFixed(1)+"°"+(focus.lon>=0?" E":" W");
   $("enterSurface").textContent="⌕ Explore surface";
@@ -45,8 +68,9 @@ function leaveSurface(){
   localActive=false;
   $("surfaceViewport").hidden=true;$("globeViewport").hidden=false;$("localPanel").hidden=true;
   if(localView)localView.visible=false;
-  view.camera.position.set(0,1.2,7.9);
-  view.controls.target.set(0,0,0);view.controls.update();view.resize();
+  // Keep the last planet orbit, avoiding a sudden reset when returning.
+  view.controls.update();view.resize();
+  if(window.innerWidth>850)setHud("left",true);
 }
 function showInspection(agent){
   inspectedId=agent?.id??null;
