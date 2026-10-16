@@ -59,9 +59,13 @@ export class SurfaceView{
       vertexColors:true,roughness:.96,flatShading:false,side:THREE.DoubleSide
     });
     this.raycaster=new THREE.Raycaster();this.pointer=new THREE.Vector2();
-    this.onDown=e=>this.pointerDown={x:e.clientX,y:e.clientY};
+    this.onContextMenu=e=>e.preventDefault();
+    this.onDown=e=>this.pointerDown=e.button===0?
+      {x:e.clientX,y:e.clientY,pointerId:e.pointerId}:null;
     this.onUp=e=>{
-      if(!this.pointerDown||Math.hypot(e.clientX-this.pointerDown.x,e.clientY-this.pointerDown.y)>7)return;
+      const start=this.pointerDown;this.pointerDown=null;
+      if(e.button!==0||!start||start.pointerId!==e.pointerId||
+         Math.hypot(e.clientX-start.x,e.clientY-start.y)>7)return;
       this.interact(e);
     };
     // Continuous wheel zoom works in both directions; return only near the
@@ -70,6 +74,7 @@ export class SurfaceView{
       if(returnPlanetAt(this.camera.position.distanceTo(this.controls.target),
         this.visible,e.deltaY>0))this.onExit();
     };
+    canvas.addEventListener("contextmenu",this.onContextMenu);
     canvas.addEventListener("pointerdown",this.onDown);
     canvas.addEventListener("pointerup",this.onUp);
     canvas.addEventListener("wheel",this.onWheel,{passive:true});
@@ -535,6 +540,7 @@ export class SurfaceView{
   }
   dispose(){
     this.running=false;this.resizeObserver.disconnect();
+    this.canvas.removeEventListener("contextmenu",this.onContextMenu);
     this.canvas.removeEventListener("pointerdown",this.onDown);
     this.canvas.removeEventListener("pointerup",this.onUp);
     this.canvas.removeEventListener("wheel",this.onWheel);
