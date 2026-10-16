@@ -9,6 +9,7 @@ import {createCreatureModel} from "./creature-models.js";
 import {SPECIES} from "./era-ecology.js";
 import {classifyPhysicalFeature} from "./physical-features.js";
 import {createLandformLandmarks} from "./landform-view.js";
+import {returnPlanetAt} from "./zoom-transition.js";
 
 const color=(hex)=>new THREE.MeshStandardMaterial({color:hex,roughness:1,flatShading:true});
 const m={trunk:color(0x65452e),leaf:color(0x4c9860),leaf2:color(0x60ac64),
@@ -61,8 +62,12 @@ export class SurfaceView{
       if(!this.pointerDown||Math.hypot(e.clientX-this.pointerDown.x,e.clientY-this.pointerDown.y)>7)return;
       this.interact(e);
     };
-    // Explicit Return to planet prevents a zoom-out gesture from switching modes unexpectedly.
-    this.onWheel=()=>{};
+    // Continuous wheel zoom works in both directions; return only near the
+    // zoom-out limit, after a deliberate outward scroll (hysteresis).
+    this.onWheel=e=>{
+      if(returnPlanetAt(this.camera.position.distanceTo(this.controls.target),
+        this.visible,e.deltaY>0))this.onExit();
+    };
     canvas.addEventListener("pointerdown",this.onDown);
     canvas.addEventListener("pointerup",this.onUp);
     canvas.addEventListener("wheel",this.onWheel,{passive:true});
