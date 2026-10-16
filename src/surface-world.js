@@ -1,6 +1,7 @@
 // Lightweight regional autonomous-agent ecology. This is a goal/need-based AI simulation,
 // not a conscious mind or a historical reconstruction. No Three.js dependency.
 import {RNG} from "./simulation.js";
+import {sampleLocal} from "./geography.js";
 
 export const REGION_SIZE = 180;
 const HALF=REGION_SIZE/2;
@@ -23,8 +24,8 @@ export function terrainHeight(x,z,seed=0){
   return hills+peaks-valley+archipelago;
 }
 export class SurfaceWorld {
-  constructor(seed=42,era=1490,lat=5,lon=0){
-    this.seed=(seed>>>0)||42;this.era=era;this.lat=lat;this.lon=lon;
+  constructor(seed=42,era=1490,lat=5,lon=0,seaShift=0){
+    this.seed=(seed>>>0)||42;this.era=era;this.lat=lat;this.lon=lon;this.seaShift=seaShift;
     this.terrainSeed=(this.seed+Math.round(lat*37)+Math.round(lon*19))>>>0;
     this.rng=new RNG(this.terrainSeed||7);
     this.time=0;this.elapsed=0;this.nextId=1;this.agents=[];this.trees=[];this.undergrowth=[];
@@ -33,23 +34,21 @@ export class SurfaceWorld {
     this.lastBirth=0;this.lastSeed=0;
     this.populate();
   }
-  height(x,z){return terrainHeight(x,z,this.terrainSeed)}
-  isLand(x,z){return x>-HALF+4&&x<HALF-4&&z>-HALF+4&&z<HALF-4&&this.height(x,z)>-1.4}
+  sample(x,z){return sampleLocal(x,z,this.lat,this.lon,this.seed,this.seaShift)}
+  height(x,z){return this.sample(x,z).height}
+  isLand(x,z){return this.sample(x,z).land}
   location(prefer={x:0,z:0},range=65){
     for(let t=0;t<100;t++){
-      const x=CLAMP(prefer.x+this.rng.between(-range,range),-86,86);
-      const z=CLAMP(prefer.z+this.rng.between(-range,range),-86,86);
+      const x=CLAMP(prefer.x+this.rng.between(-range,range),-10000,10000);
+      const z=CLAMP(prefer.z+this.rng.between(-range,range),-10000,10000);
       if(this.isLand(x,z)&&this.height(x,z)<9)return {x,z};
     }
     return {x:0,z:0};
   }
   log(message){this.events.unshift({time:Math.floor(this.time),message});if(this.events.length>25)this.events.length=25}
   vegetationBiome(x,z){
-    const height=this.height(x,z);
-    const shore=Math.abs(x-riverX(z,this.terrainSeed));
-    const moisture=Math.max(0,Math.min(1,.55+.25*Math.sin(z*.041+x*.024)+
-      (shore<13?.40:0)-Math.max(0,height-3)*.035));
-    return {height,shore,moisture};
+    const g=this.sample(x,z);
+    return {height:g.height,shore:g.river?0:g.height<2?6:30,moisture:g.moisture};
   }
   chooseTreeSpecies(x,z){
     const biome=this.vegetationBiome(x,z);
@@ -159,7 +158,7 @@ export class SurfaceWorld {
       if(predator){
         a.memory.lastDanger={x:predator.x,z:predator.z,time:this.time};
         const dx=a.x-predator.x,dz=a.z-predator.z,d=Math.max(.01,Math.hypot(dx,dz));
-        this.destination(a,{x:CLAMP(a.x+dx/d*27,-83,83),z:CLAMP(a.z+dz/d*27,-83,83)},"fleeing");
+        this.destination(a,{x:CLAMP(a.x+dx/d*27,-10000,10000),z:CLAMP(a.z+dz/d*27,-10000,10000)},"fleeing");
         return;
       }
       const remembered=a.memory.lastFood&&this.trees.find(t=>t.id===a.memory.lastFood&&t.alive&&t.fruit>.5);
@@ -180,7 +179,7 @@ export class SurfaceWorld {
     if(threat){
       a.memory.lastDanger={x:threat.x,z:threat.z,time:this.time};
       const dx=a.x-threat.x,dz=a.z-threat.z,d=Math.max(.01,Math.hypot(dx,dz));
-      this.destination(a,{x:CLAMP(a.x+dx/d*23,-85,85),z:CLAMP(a.z+dz/d*23,-85,85)},"escaping danger");
+      this.destination(a,{x:CLAMP(a.x+dx/d*23,-10000,10000),z:CLAMP(a.z+dz/d*23,-10000,10000)},"escaping danger");
       return;
     }
     const known=a.memory.lastFood&&this.trees.find(t=>t.id===a.memory.lastFood&&t.alive&&t.fruit>.5);
@@ -216,7 +215,7 @@ export class SurfaceWorld {
     if(d>1.3){
       const speed=(a.type==="bird"?8.5:a.type==="predator"?5.1:a.type==="grazer"?4.1:2.4)*(a.goal==="fleeing"||a.goal==="escaping danger"?1.48:1);
       const step=Math.min(d,speed*dt);
-      const nx=CLAMP(a.x+dx/d*step,-86,86),nz=CLAMP(a.z+dz/d*step,-86,86);
+      const nx=CLAMP(a.x+dx/d*step,-10000,10000),nz=CLAMP(a.z+dz/d*step,-10000,10000);
       if(this.isLand(nx,nz)||a.type==="bird"){
         a.x=nx;a.z=nz;a.rotation=Math.atan2(dx,dz);
       }else{a.target=null;a.decision=0}
@@ -254,8 +253,8 @@ export class SurfaceWorld {
       this.village.wood-=3;
       const angle=this.rng.next()*Math.PI*2;
       const radial=8+Math.sqrt(this.structures.length)*4;
-      const px=CLAMP(this.village.x+Math.cos(angle)*radial,-80,80);
-      const pz=CLAMP(this.village.z+Math.sin(angle)*radial,-80,80);
+      const px=CLAMP(this.village.x+Math.cos(angle)*radial,-10000,10000);
+      const pz=CLAMP(this.village.z+Math.sin(angle)*radial,-10000,10000);
       if(this.isLand(px,pz)){
         this.structures.push({id:this.nextId++,x:px,z:pz,type:"hut",progress:1});
         a.skill.craft=CLAMP(a.skill.craft+.25,0,10);
@@ -314,7 +313,7 @@ export class SurfaceWorld {
     if(this.agents.length>160)this.agents=this.agents.filter(a=>a.active);
   }
   intervene(kind,x,z){
-    x=CLAMP(x,-85,85);z=CLAMP(z,-85,85);
+    x=CLAMP(x,-10000,10000);z=CLAMP(z,-10000,10000);
     if(kind==="tree"){
       let count=0;
       for(let i=0;i<15;i++){
@@ -344,7 +343,7 @@ export class SurfaceWorld {
     }
   }
   toJSON(){
-    return {version:1,seed:this.seed,era:this.era,lat:this.lat,lon:this.lon,
+    return {version:1,seed:this.seed,era:this.era,lat:this.lat,lon:this.lon,seaShift:this.seaShift,
       undergrowth:this.undergrowth.map(p=>({...p})),
       rng:this.rng.value,time:this.time,elapsed:this.elapsed,nextId:this.nextId,
       trees:this.trees.map(t=>({...t})),agents:this.agents.map(a=>({
@@ -367,10 +366,10 @@ export class SurfaceWorld {
       !Number.isFinite(save.rng))throw Error("Invalid regional save data");
     for(const entry of [...save.agents,...save.trees,...save.structures]){
       if(!Number.isFinite(entry.x)||!Number.isFinite(entry.z)||
-        Math.abs(entry.x)>90||Math.abs(entry.z)>90||
+        Math.abs(entry.x)>10000||Math.abs(entry.z)>10000||
         !Number.isInteger(entry.id)||entry.id<1)throw Error("Invalid saved creature or object");
     }
-    const w=new SurfaceWorld(save.seed,save.era,save.lat,save.lon);
+    const w=new SurfaceWorld(save.seed,save.era,save.lat,save.lon,save.seaShift||0);
     w.rng.value=save.rng;w.time=save.time;w.elapsed=save.elapsed||0;w.nextId=save.nextId;
     w.agents=save.agents.map(a=>({...a,personality:{...a.personality},
       memory:{...a.memory},skill:{...a.skill},target:a.target?{...a.target}:null}));
@@ -378,7 +377,7 @@ export class SurfaceWorld {
     if(save.undergrowth!==undefined){
       if(!Array.isArray(save.undergrowth)||save.undergrowth.length>1200||
         save.undergrowth.some(p=>!Number.isFinite(p.x)||!Number.isFinite(p.z)||
-          Math.abs(p.x)>90||Math.abs(p.z)>90))throw Error("Invalid ground cover");
+          Math.abs(p.x)>10000||Math.abs(p.z)>10000))throw Error("Invalid ground cover");
       w.undergrowth=save.undergrowth.map(p=>({...p}));
     }
     w.events=Array.isArray(save.events)?save.events.slice(0,25).map(e=>({...e})):[];
