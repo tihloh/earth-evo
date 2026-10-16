@@ -45,8 +45,8 @@ export function classifyPhysicalFeature(s,nearby=null){
    if(h<.35&&m>.62)return {category:"land",name:"delta",shore:true};
    return {category:"land",name:steep>1.6?"coastal bluff":"beach",shore:true};
  }
- if(h>12&&factor>1)return {category:"land",name:"volcano",shore:false};
- if(h>10&&factor< -1.15)return {category:"land",name:"crater",shore:false};
+ if(s.volcano>.36&&h>10)return {category:"land",name:"volcano",shore:false};
+ if(s.volcano>.8&&h>12)return {category:"land",name:"crater",shore:false};
  if(h>3&&steep>2.7&&factor>.55)return {category:"land",name:"cave entrance",shore:false};
  if(h>10)return {category:"land",name:steep>2?"mountain range":"mountain",shore:false};
  if(h>8)return {category:"land",name:steep>1.5?"ridge":"highland",shore:false};
