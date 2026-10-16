@@ -3,7 +3,7 @@
 
 **Earth Evo** is an interactive simulation prototype that follows a fictionalized, science-inspired Earth from planetary formation (~4.54 billion years ago), through the emergence and diversification of life, to human settlements and hypothetical futures.
 
-**Current status: v0.5 — unified procedural planet, streamed open-world terrain, fog-of-war LOD, and corrected animal orientation.** It includes a navigable planetary globe, a close-up procedural regional world with autonomous creatures, and a simplified worldwide ecosystem/civilization simulation. It is **not** a physically accurate 4.54-billion-year reconstruction, a full Darwinian genetics simulator, or a Civilization-scale strategy game.
+**Current status: v0.6 — era-aware wildlife and vegetation, distinct low-poly species, configurable weather/fog, physical feature cues and lighter distant terrain.** It includes a navigable planetary globe, a close-up procedural regional world with autonomous creatures, and a simplified worldwide ecosystem/civilization simulation. It is **not** a physically accurate 4.54-billion-year reconstruction, a full Darwinian genetics simulator, or a Civilization-scale strategy game.
 
 ## Run it
 
@@ -36,25 +36,25 @@ If you want the app hosted as a static website, this project can also be served 
 
 **Planet view:** Rotate the Earth and use the **general timeline scrollbar** to navigate from Earth's formation to a hypothetical future. Click a location on the globe to select it, then click **Explore surface** or zoom in until the regional 3D view opens.
 
-**Surface view:** Orbit or right-drag to pan across a tile-streamed open world. The camera loads nearby terrain and releases distant tiles, with distant terrain faded into fog. See low-poly humans, animals, birds, forests, mountains, rivers, shorelines, islands, and huts. Use **Return to planet** to leave.
+**Surface view:** Orbit or right-drag to pan across a tile-streamed open world. The camera loads nearby terrain and releases distant tiles, with light-weight distant terrain rendered even if fog is disabled. See low-poly humans, animals, birds, forests, mountains, rivers, shorelines, islands, and huts. Use **Return to planet** to leave.
 
 **The globe and open-world terrain now share exactly the same deterministic elevation/biome function** (`src/geography.js`) at matching latitudes and longitudes. Coastline, land/water, river classification, and sampled height agree at the underlying geographic coordinates. The globe uses a **1536×768 raster**, while the local terrain uses streamed geometry of varying tessellation, so their visible pixel edges and triangles may differ slightly at a given zoom.
 
 **Important:** This is a **fictional procedural planet**, not a surveyed Earth. It does not yet use authentic landmasses, USGS/NASA elevation models, plate-tectonic reconstructions, or actual modern river networks. Matching the two game views is not the same as matching real geography.
 
-The global and local **ecosystem simulations remain different scales**. Local agents and God Mode changes are not yet persisted back into the aggregated planet model. Scrubbing into a different major era rebuilds the local scene, and the local world runs independently while you explore.
+The global and local **ecosystem simulations remain different scales**. Local agents and God Mode changes are not yet persisted back into the aggregated planet model. Scrubbing across an ecological transition rebuilds the local scene, and the local world runs independently while you explore.
 
 ### Creature autonomy
 
 Local creatures are not simple animated loops:
 
-- **Herbivores** graze, forage, flee nearby predators and reproduce.
-- **Predators** search for prey and hunt when hungry.
-- **Birds** fly, forage and avoid dangers.
-- **Humans** explore, seek food, hunt, gather timber, deliver supplies, socialize, escape predators and construct shelters when materials are available.
-- **Trees** regenerate food, can be consumed or harvested, and slowly disperse seeds.
+- **Herbivores** graze, form loose herds, forage, drink, rest, flee nearby predators and reproduce.
+- **Predators** search for prey, stalk or hunt when hungry, drink, rest and avoid exhaustion.
+- **Pterosaurs and birds** fly, forage or fish and avoid dangers in era-appropriate periods.
+- **Humans** explore, seek food/water, hunt, gather timber, deliver supplies, socialize, rest, escape predators and construct shelters when materials are available; clothes vary across historical stages.
+- **Marine creatures** swim and feed in water starting in early marine-life stages. **Plants** begin with early mosses and clubmoss-like forms before later forests and flowering plants; trees regenerate food and disperse seeds.
 
-Each individual has different **curiosity, courage, sociability and diligence**, keeps rudimentary memories of food and danger, and acquires simple survival or crafting experience. The inspector shows their current goals, motivations, hunger, energy and learned skills. This is **rule-based utility/goal AI, not consciousness, reasoning language models or independent artificial general intelligence**.
+Each individual has different **curiosity, courage, sociability and diligence**, keeps rudimentary memories of food and danger, and acquires simple survival or crafting experience. The inspector shows their current goals, motivations, hunger, energy and learned skills. This is **rule-based goal AI, not consciousness, language-model intelligence, or independent artificial general intelligence**.
 
 ### God Mode
 
@@ -62,20 +62,31 @@ In the surface view choose a power in the right sidebar, then click the landscap
 
 - **Inspect:** Pick a creature or shelter; follow a selected creature with the camera.
 - **Grow forest / Grow food / Bring rain:** Supply plants and food or boost fertility.
-- **Add grazer / predator / bird / human:** Introduce new creatures (subject to era restrictions).
+- **Add herbivore / predator / flying creature / marine creature / human:** Introduce species that are appropriate to the current era and habitat.
 - **Place shelter:** Intervene directly in settlement development.
 - **Lightning:** Harm nearby organisms and trees.
 
 Set the regional simulation to **1×, 4× or 10×**, or pause local life while keeping the 3D camera interactive.
 
-## Open-world streaming and fog of war
+## Open-world streaming and distant terrain LOD
 
 - The visible landscape is generated on demand in **48-unit terrain chunks** from your selected globe coordinates. Chunk edges use the same coordinate sampler as the globe.
-- Nearby chunks use higher-detail geometry. Outer tiles use simplified meshes and muted unexplored styling; atmospheric fog masks distant draw limits.
+- Nearby chunks use 32-segment detail, middle chunks 16 segments, and distant chunks only 4 segments per edge. Unexplored terrain is **not darkened**.
 - **Visibility** in the top toolbar controls the terrain ring: Fast (2), Balanced (3, default), or Far (4). The two-ring inner ecosystem contains individual trees and agents; distant ecology is cached or recreated deterministically.
 - The camera can pan far beyond the original 180-unit square. The world streams as you move; there is no single fixed map edge within the supported coordinate range.
 - Exploration state and nearby active ecology are included in Save/Load; distant chunk snapshots have a bounded cache (96 chunks) for browser memory safety. Evicted areas can be reconstructed procedurally, but older player modifications there may not be preserved.
-- This is an efficient procedural **fog-of-war-like streaming prototype**, not yet an infinite physically simulated planet, asynchronous disk-backed world, or a full undiscovered-map exploration system.
+- This is lightweight **distance-based rendering**, not game fog-of-war. Distant wildlife and vegetation are streamed/cached; the landscape stays visually readable. This is not yet an infinite physically simulated planet or persistent disk-backed world.
+
+## Weather, landforms and epoch-appropriate wildlife
+
+- Surface Actions HUD: **Fog style** = None / Atmospheric / Match Weather. Fog is visual; distant mesh simplification works even with fog disabled.
+- **Weather** = Automatic, Clear, Cloudy, Rain, Snow, Windy or Dust. Rain/snow use light particle effects; weather is a simplified visual/ecological system.
+- 20+ era- and climate-gated animal analogues, including ancient marine life, amphibians, dinosaur families, pterosaurs, early birds, mammals and humans. Distinct stylized body plans replace the single generic quadruped model.
+- Early land flora, conifers, cycads, ginkgo and later flowering trees/vegetation appear by approximate simulated geological stage.
+- The terrain feature catalogue recognizes mountains, ridges, plateaus, canyons, cliffs, dunes, coastlines, reefs, lakes, rivers, waterfalls, caves, fjords and more. Nearby tiles include sparse low-poly landmark details. **Not all catalog names represent fully simulated geology or hydrology.**
+- Human figures use broad era-sensitive garments: early wraps, woven/fur tunics, historic robes, industrial coats, contemporary casualwear and speculative suits. These are generalized prototypes, not historically or culturally exact reconstructions.
+
+See **[Era ecology and landforms](docs/ERA-ECOLOGY.md)** for supported features and limitations.
 
 ## Camera navigation and compact HUD
 
@@ -138,6 +149,9 @@ src/
   renderer.js            Three.js planet and markers
   geography.js           Canonical seeded globe and regional elevation, river and biome sampling
   open-world.js           Nearby ecosystem streaming, discovery and bounded chunk cache
+  era-ecology.js          Timeline-gated species, plant families and human attire
+  physical-features.js    Landform and water-body categories
+  landform-view.js        Lightweight local landform landmark meshes
   surface-world.js       Geolocated creature AI and local ecology
   surface-view.js        3D terrain, creature instances, buildings and camera
   creature-models.js     Articulated, procedural humans, quadrupeds and birds
