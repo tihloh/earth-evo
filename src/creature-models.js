@@ -1,6 +1,7 @@
 // Era-dependent procedural low-poly creatures. The +Z axis is forward for all forms.
 // These meshes approximate anatomical groups; they are not taxonomically exact reconstructions.
 import * as THREE from "three";
+import {createLandAnimal} from "./animal-anatomy.js";
 const materials=new Map();
 const mat=(hex)=>{if(!materials.has(hex))materials.set(hex,
   new THREE.MeshStandardMaterial({color:hex,roughness:.9,flatShading:true}));
@@ -29,64 +30,6 @@ function eyes(head,sideX=.32,y=.09,z=.50){
    part(head,"eye",0x182020,side*sideX,y,z,.07,.07,.045);
    part(head,"eye",0xf7f7e8,side*sideX-.016,y+.03,z+.035,.021,.021,.02);
  }
-}
-function quadruped(a){
- const root=new THREE.Group(),body=new THREE.Group();root.add(body);
- const species=a.species||"deer",fur={
-   wolf:0x857c69,lion:0xbe9451,deer:0xb69875,bison:0x644637,
-   mammoth:0x765743,elephant:0x878c84,rabbit:0xafa492,
-   earlySynapsid:0x8d7554,amphibian:0x679477
- }[species]||0xb39879;
- const belly=species==="amphibian"?0xa4b78a:0xd9c8ac;
- const isElephant=["mammoth","elephant"].includes(species);
- const isBison=species==="bison";
- const isRabbit=species==="rabbit";
- const tailPivot=new THREE.Group();tailPivot.position.set(0,1.22,-.79);body.add(tailPivot);
- part(body,"orb",fur,0,1.23,0,.57,.48,isElephant?1.08:.95);
- part(body,"orb",belly,0,.93,.18,.47,.15,.64);
- if(isBison)part(body,"low",0x49352b,0,1.56,.24,.65,.70,.63);
- if(isElephant)part(body,"orb",fur,0,1.35,.29,.72,.78,.72);
- const neck=new THREE.Group();neck.position.set(0,1.41,.62);body.add(neck);
- part(neck,"leg",fur,0,.15,.26,.45,.66,.47,Math.PI/5);
- const head=new THREE.Group();head.position.set(0,.37,.61);neck.add(head);
- part(head,"orb",fur,0,0,0,.46,isElephant?.53:.40,.49);
- part(head,"low",belly,0,-.18,.35,.32,.20,.35);
- eyes(head,.27,.10,.38);
- if(["wolf","lion"].includes(species)){
-   part(head,"low",0x20201c,0,-.14,.68,.13,.11,.13);
-   for(const side of [-1,1])part(head,"cone",fur,side*.36,.44,-.05,.26,.45,.27,0,0,side*.09);
-   if(species==="lion")part(head,"orb",0x765333,0,.02,-.12,.58,.58,.43);
- }else if(isElephant){
-   const trunk=new THREE.Group();trunk.position.set(0,-.16,.43);head.add(trunk);
-   part(trunk,"leg",fur,0,-.27,.24,.23,.75,.23,Math.PI/3);
-   part(trunk,"leg",fur,0,-.68,.45,.18,.47,.17,Math.PI/6);
-   for(const side of [-1,1]){
-     part(head,"orb",fur,side*.56,.02,-.12,.42,.55,.20,0,side*.14);
-     part(head,"cone",0xe3d7ba,side*.31,-.35,.47,.17,.85,.15,Math.PI/2.8,0,side*.16);
-   }
- }else if(isRabbit){
-   for(const side of [-1,1])part(head,"orb",fur,side*.22,.76,-.08,.18,.67,.15);
-   part(head,"low",0xe7cfca,0,-.1,.57,.11,.10,.12);
- }else if(["deer","bison"].includes(species)){
-   const horn=species==="bison"?0xe8dbb4:0x7f6a4a;
-   for(const side of [-1,1]){
-     part(head,"cone",horn,side*.32,.65,-.12,.10,species==="deer"?.65:.47,.10,0,0,side*.22);
-     if(species==="deer")part(head,"cone",horn,side*.51,.71,-.08,.08,.36,.07,0,0,-side*.41);
-   }
- }else if(species==="earlySynapsid"){
-   part(body,"disk",0x80674c,0,1.9,-.12,.19,1.25,.65,0,Math.PI/2);
- }else if(species==="amphibian"){
-   part(head,"low",0x9ba96c,0,-.25,.39,.35,.19,.39);
- }
- const legs=[];
- for(const z of [-.55,.58])for(const side of [-1,1]){
-   legs.push(limb(body,side*(isElephant?.48:.37),1.03,z,fur,
-     isRabbit?.51:isElephant?1.05:.80));
- }
- part(tailPivot,"cone",fur,0,-.10,-.55,.15,.78,.14,Math.PI/2);
- root.userData={legs,head,body,tail:tailPivot};
- if(isRabbit)root.scale.setScalar(.65);
- return root;
 }
 function dinosaur(a){
  const root=new THREE.Group(),body=new THREE.Group();root.add(body);
@@ -229,7 +172,7 @@ export function createCreatureModel(a){
  const spec=a.species||"deer";
  const root=a.type==="human"?human(a):a.type==="marine"?marine(a):
    ["sauropod","stegosaur","theropod"].includes(spec)?dinosaur(a):
-   a.type==="bird"?flying(a):quadruped(a);
+   a.type==="bird"?flying(a):createLandAnimal(a);
  root.userData.agentId=a.id;
  root.scale.setScalar(Math.max(.35,Math.min(3.6,(a.size||1)*.78)));
  root.traverse(o=>{if(o.isMesh)o.userData.agentId=a.id});
