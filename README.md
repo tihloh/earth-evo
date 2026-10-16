@@ -3,7 +3,7 @@
 
 **Earth Evo** is an interactive simulation prototype that follows a fictionalized, science-inspired Earth from planetary formation (~4.54 billion years ago), through the emergence and diversification of life, to human settlements and hypothetical futures.
 
-**Current status: v0.4 — detailed multiscale 3D sandbox with precision navigation and compact HUD.** It includes a navigable planetary globe, a close-up procedural regional world with autonomous creatures, and a simplified worldwide ecosystem/civilization simulation. It is **not** a physically accurate 4.54-billion-year reconstruction, a full Darwinian genetics simulator, or a Civilization-scale strategy game.
+**Current status: v0.5 — unified procedural planet, streamed open-world terrain, fog-of-war LOD, and corrected animal orientation.** It includes a navigable planetary globe, a close-up procedural regional world with autonomous creatures, and a simplified worldwide ecosystem/civilization simulation. It is **not** a physically accurate 4.54-billion-year reconstruction, a full Darwinian genetics simulator, or a Civilization-scale strategy game.
 
 ## Run it
 
@@ -36,9 +36,13 @@ If you want the app hosted as a static website, this project can also be served 
 
 **Planet view:** Rotate the Earth and use the **general timeline scrollbar** to navigate from Earth's formation to a hypothetical future. Click a location on the globe to select it, then click **Explore surface** or zoom in until the regional 3D view opens.
 
-**Surface view:** Orbit the terrain, fly closer with the scroll wheel to see individual low-poly humans, animals and birds, forests, mountains, rivers, small offshore islands, and huts. Use **Return to planet** or zoom out all the way to leave.
+**Surface view:** Orbit or right-drag to pan across a tile-streamed open world. The camera loads nearby terrain and releases distant tiles, with distant terrain faded into fog. See low-poly humans, animals, birds, forests, mountains, rivers, shorelines, islands, and huts. Use **Return to planet** to leave.
 
-The two levels have different scales and simulation systems. The regional map is currently a **procedural landscape based on your selected seed and approximate location**, not true Google-Earth-style geography or a precise downscaling of the planet's regional population data. Surface actions affect the regional sandbox only. Scrubbing the general timeline to a different era reconstructs the local sandbox appropriate to that era. The local world continues living at its own pace while you explore it.
+**The globe and open-world terrain now share exactly the same deterministic elevation/biome function** (`src/geography.js`) at matching latitudes and longitudes. Coastline, land/water, river classification, and sampled height agree at the underlying geographic coordinates. The globe uses a **1536×768 raster**, while the local terrain uses streamed geometry of varying tessellation, so their visible pixel edges and triangles may differ slightly at a given zoom.
+
+**Important:** This is a **fictional procedural planet**, not a surveyed Earth. It does not yet use authentic landmasses, USGS/NASA elevation models, plate-tectonic reconstructions, or actual modern river networks. Matching the two game views is not the same as matching real geography.
+
+The global and local **ecosystem simulations remain different scales**. Local agents and God Mode changes are not yet persisted back into the aggregated planet model. Scrubbing into a different major era rebuilds the local scene, and the local world runs independently while you explore.
 
 ### Creature autonomy
 
@@ -64,6 +68,15 @@ In the surface view choose a power in the right sidebar, then click the landscap
 
 Set the regional simulation to **1×, 4× or 10×**, or pause local life while keeping the 3D camera interactive.
 
+## Open-world streaming and fog of war
+
+- The visible landscape is generated on demand in **48-unit terrain chunks** from your selected globe coordinates. Chunk edges use the same coordinate sampler as the globe.
+- Nearby chunks use higher-detail geometry. Outer tiles use simplified meshes and muted unexplored styling; atmospheric fog masks distant draw limits.
+- **Visibility** in the top toolbar controls the terrain ring: Fast (2), Balanced (3, default), or Far (4). The two-ring inner ecosystem contains individual trees and agents; distant ecology is cached or recreated deterministically.
+- The camera can pan far beyond the original 180-unit square. The world streams as you move; there is no single fixed map edge within the supported coordinate range.
+- Exploration state and nearby active ecology are included in Save/Load; distant chunk snapshots have a bounded cache (96 chunks) for browser memory safety. Evicted areas can be reconstructed procedurally, but older player modifications there may not be preserved.
+- This is an efficient procedural **fog-of-war-like streaming prototype**, not yet an infinite physically simulated planet, asynchronous disk-backed world, or a full undiscovered-map exploration system.
+
 ## Camera navigation and compact HUD
 
 **The world view now fills the central workspace**, and small translucent HUD panels float over it instead of occupying permanent sidebar columns.
@@ -72,7 +85,7 @@ Set the regional simulation to **1×, 4× or 10×**, or pause local life while k
 - **Actions HUD** toggles the creature inspector, events and interactive god powers.
 - **General timeline** is a slim bottom strip to keep historical navigation available while leaving more room for the 3D scene.
 - **Left-drag / one-finger drag** orbits the view; **right-drag / two-finger pan** moves the focus point.
-- **Wheel / trackpad zoom** is anchored toward the pointer in both planet and regional views.
+- **Wheel / trackpad zoom** is anchored toward the pointer in both planet and regional views; terrain tiles stream as the local camera pans.
 - **Camera glide** defaults to **Precise (2%)**: the orbit controller applies approximately 98% of an input on its first 60 Hz update, with 2% residual damping. The toolbar also offers **None (0%)** and **Soft (5%)**. These percentages describe *residual motion*, not a measured accuracy guarantee.
 - Idle planet rotation is turned off. The selected world stays still when you stop manipulating the camera.
 - Camera panning is confined to the local map while you explore the detailed terrain.
@@ -123,7 +136,9 @@ src/
   app.js                 UI, timeline, multiscale navigation and controls
   simulation.js          Reproducible global world/ecosystem/civilization core
   renderer.js            Three.js planet and markers
-  surface-world.js       Local terrain functions and autonomous creature AI
+  geography.js           Canonical seeded globe and regional elevation, river and biome sampling
+  open-world.js           Nearby ecosystem streaming, discovery and bounded chunk cache
+  surface-world.js       Geolocated creature AI and local ecology
   surface-view.js        3D terrain, creature instances, buildings and camera
   creature-models.js     Articulated, procedural humans, quadrupeds and birds
   vegetation-view.js     Instanced trees and biome ground cover
@@ -148,7 +163,7 @@ docs/
 - [x] Simplified settlement and technology dynamics
 - [x] Climate/impact intervention controls, save/load, automated tests
 - [ ] Biological agents with richer genetics, organisms, anatomies and life cycles
-- [ ] Continental movement, plate tectonics and higher fidelity climate
+- [ ] Real-world modern and prehistoric continents/DEM datasets, plate tectonics and higher-fidelity climate
 - [x] Procedural local 3D terrain, river, islands, varied forests and detailed animated low-poly wildlife
 - [x] Zoom-to-surface navigation, inspector, god powers and creature following
 - [x] Cursor-focused precision zoom, optional 0–5% glide, panning and compact collapsible HUDs
