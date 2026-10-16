@@ -65,13 +65,13 @@
   </aside>
   <main class="center">
     <div id="globeViewport">
-      <canvas id="globe" aria-label="Interactive Three.js globe, drag to rotate and use mousewheel to zoom">
+      <canvas id="globe" aria-label="Interactive Three.js globe; left drag to pan, right drag to rotate, wheel to zoom">
         The 3D Earth view requires a WebGL-capable browser.
       </canvas>
       <div class="viewport-header"><div class="eyebrow">Planet Earth / Sol System</div></div>
       <button type="button" class="enter-surface" id="enterSurface">⌕ Explore surface</button>
       <div class="globe-select-hint" id="globeSelection">Click the globe to choose an area, then zoom in</div>
-      <div class="viewport-footer"><span>Drag to orbit · Right drag to pan · Scroll to zoom</span><span id="tickText">Simulation tick 0</span></div>
+      <div class="viewport-footer"><span>Left drag to pan · Right drag to rotate · Wheel to zoom</span><span id="tickText">Simulation tick 0</span></div>
     </div>
     <div id="surfaceViewport" hidden>
       <canvas id="surface" aria-label="Explorable region with terrain, forests and autonomous creatures">A modern WebGL browser is required.</canvas>
@@ -79,7 +79,7 @@
         <button type="button" id="leaveSurface">← Return to planet</button>
         <div id="localLabel" class="surface-caption">Living region</div>
       </div>
-      <div class="surface-overlay bottom">Open world · drag to orbit · right drag to explore · fog hides distant tiles · inspect or use god powers</div>
+      <div class="surface-overlay bottom">Left drag: pan · Right drag: rotate · Wheel: zoom across globe and terrain · Optional weather fog</div>
     </div>
   </main>
   <aside id="actionsHud" class="right hud-panel" aria-label="Ecological changes and interventions">
