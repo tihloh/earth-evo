@@ -208,3 +208,16 @@ p{color:#acc1d0;line-height:1.7}
 .surface-picker button{padding:7px 9px;border:1px solid #518c9c;background:#205469;
  color:#eaffff;border-radius:7px;font-size:.73rem;white-space:nowrap}
 .surface-picker select:focus-visible,.surface-picker button:focus-visible{outline:2px solid #7fe6d6}
+
+/* Cross-scale wheel navigation: both renderers overlap during a short blend. */
+#globeViewport,#surfaceViewport{
+  transition:opacity .54s cubic-bezier(.22,.62,.32,1);
+  will-change:opacity;
+}
+#globeViewport{opacity:1;z-index:1;pointer-events:auto}
+#surfaceViewport{opacity:0;z-index:2;pointer-events:none}
+body.world-surface #globeViewport{opacity:0;pointer-events:none}
+body.world-surface #surfaceViewport{opacity:1;pointer-events:auto}
+@media(prefers-reduced-motion:reduce){
+  #globeViewport,#surfaceViewport{transition-duration:0ms;will-change:auto}
+}
