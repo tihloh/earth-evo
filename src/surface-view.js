@@ -2,6 +2,8 @@ import * as THREE from "three";
 import {OrbitControls} from "three/addons/controls/OrbitControls.js";
 import {REGION_SIZE,riverX} from "./surface-world.js";
 import {configurePrecisionCamera,setCameraGlide,confineSurfaceTarget} from "./camera-controls.js";
+import {buildVegetationMeshes} from "./vegetation-view.js";
+import {createCreatureModel} from "./creature-models.js";
 
 const color=(hex)=>new THREE.MeshStandardMaterial({color:hex,roughness:1,flatShading:true});
 const m={trunk:color(0x65452e),leaf:color(0x4c9860),leaf2:color(0x60ac64),
@@ -119,23 +121,10 @@ export class SurfaceView{
     this.river=new THREE.Mesh(g,m.river);this.worldRoot.add(this.river);
   }
   buildTrees(){
-    const alive=this.world.trees.filter(t=>t.alive);
-    const stemGeo=new THREE.CylinderGeometry(.17,.28,2,5);
-    const foliageGeo=new THREE.ConeGeometry(1.4,4.1,6);
-    const stemMat=m.trunk.clone(),leafMat=m.leaf.clone();
-    const stem=new THREE.InstancedMesh(stemGeo,stemMat,alive.length);
-    const foliage=new THREE.InstancedMesh(foliageGeo,leafMat,alive.length);
-    const obj=new THREE.Object3D();
-    for(let i=0;i<alive.length;i++){
-      const tree=alive[i],h=this.world.height(tree.x,tree.z),s=tree.size;
-      obj.position.set(tree.x,h+s,tree.z);obj.scale.set(s,s,s);obj.rotation.y=tree.id;
-      obj.updateMatrix();stem.setMatrixAt(i,obj.matrix);
-      obj.position.y=h+3.0*s;obj.updateMatrix();foliage.setMatrixAt(i,obj.matrix);
-    }
-    stem.instanceMatrix.needsUpdate=true;foliage.instanceMatrix.needsUpdate=true;
-    stem.castShadow=true;foliage.castShadow=true;
-    this.worldRoot.add(stem,foliage);
-    this.instanced.push(stem,foliage);this.treeMeshes=[stem,foliage];this.treeCount=alive.length;
+    const {meshes,treeCount}=buildVegetationMeshes(this.world);
+    this.treeMeshes=meshes;this.treeCount=treeCount;
+    this.instanced.push(...meshes);
+    for(const mesh of meshes)this.worldRoot.add(mesh);
   }
   buildProps(){
     // A few cliff boulders make mountain slopes readable when zoomed in.
@@ -154,42 +143,10 @@ export class SurfaceView{
     rock.instanceMatrix.needsUpdate=true;this.worldRoot.add(rock);this.instanced.push(rock);
   }
   makeAgentMesh(agent){
-    const root=new THREE.Group();root.userData.agentId=agent.id;
-    const add=(geo,mat,x,y,z,sx=1,sy=1,sz=1)=>{
-      const mesh=new THREE.Mesh(geo,mat);mesh.position.set(x,y,z);mesh.scale.set(sx,sy,sz);
-      mesh.castShadow=true;root.add(mesh);return mesh;
-    };
-    const sphere=new THREE.SphereGeometry(.55,8,6);
-    if(agent.type==="human"){
-      add(new THREE.CylinderGeometry(.3,.42,1.15,7),m.cloth,0,1.12,0);
-      add(new THREE.SphereGeometry(.33,8,7),m.human,0,2.02,0);
-      const left=add(new THREE.CylinderGeometry(.11,.13,.8,6),m.human,-.21,.38,0);
-      const right=add(new THREE.CylinderGeometry(.11,.13,.8,6),m.human,.21,.38,0);
-      add(new THREE.CylinderGeometry(.10,.11,.78,6),m.human,-.49,1.15,0).rotation.z=-.3;
-      add(new THREE.CylinderGeometry(.10,.11,.78,6),m.human,.49,1.15,0).rotation.z=.3;
-      root.userData.legs=[left,right];
-    }else if(agent.type==="bird"){
-      add(sphere,m.bird,0,.25,0,.58,.43,.85);
-      add(new THREE.ConeGeometry(.14,.35,5),m.roof,0,.27,.7).rotation.x=Math.PI/2;
-      const left=add(new THREE.BoxGeometry(1.4,.06,.42),m.bird,-.78,.36,0);
-      const right=add(new THREE.BoxGeometry(1.4,.06,.42),m.bird,.78,.36,0);
-      root.userData.wings=[left,right];
-    }else{
-      const mat=agent.type==="predator"?m.predator:m.grazer;
-      add(new THREE.BoxGeometry(1.5,.75,.9),mat,0,.87,0);
-      add(sphere,mat,0,1.16,.76,.66,.67,.67);
-      const legs=[];
-      for(const x of [-.55,.55])for(const z of [-.36,.36])legs.push(add(
-        new THREE.CylinderGeometry(.12,.16,.85,6),mat,x,.38,z));
-      root.userData.legs=legs;
-      if(agent.type==="grazer"){
-        add(new THREE.ConeGeometry(.11,.42,5),m.trunk,-.24,1.76,.77);
-        add(new THREE.ConeGeometry(.11,.42,5),m.trunk,.24,1.76,.77);
-      }
-    }
-    root.traverse(child=>{if(child.isMesh)child.userData.agentId=agent.id});
+    const root=createCreatureModel(agent);
     root.position.set(agent.x,this.world.height(agent.x,agent.z),agent.z);
-    this.worldRoot.add(root);return root;
+    this.worldRoot.add(root);
+    return root;
   }
   syncAgents(){
     for(const a of this.world.agents){
