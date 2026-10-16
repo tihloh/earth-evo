@@ -3,7 +3,7 @@
 
 **Earth Evo** is an interactive simulation prototype that follows a fictionalized, science-inspired Earth from planetary formation (~4.54 billion years ago), through the emergence and diversification of life, to human settlements and hypothetical futures.
 
-**Current status: v0.8 — continuous wheel-driven globe-to-ground zoom, real-browser-tested handoff, seeded nested terrain LOD, plus v0.7 wildlife and landscapes.** It includes a navigable planetary globe, a close-up procedural regional world with autonomous creatures, and a simplified worldwide ecosystem/civilization simulation. It is **not** a physically accurate 4.54-billion-year reconstruction, a full Darwinian genetics simulator, or a Civilization-scale strategy game.
+**Current status: v0.8.1 — continuous globe-to-ground zoom with corrected ocean surfaces, river/lake boundaries and crack-free stitched terrain LOD.** It includes a navigable planetary globe, a close-up procedural regional world with autonomous creatures, and a simplified worldwide ecosystem/civilization simulation. It is **not** a physically accurate 4.54-billion-year reconstruction, a full Darwinian genetics simulator, or a Civilization-scale strategy game.
 
 ## Run it
 
@@ -129,6 +129,19 @@ shoreline erosion and hydrodynamics are still not implemented.
 - Human figures use broad era-sensitive garments: early wraps, woven/fur tunics, historic robes, industrial coats, contemporary casualwear and speculative suits. These are generalized prototypes, not historically or culturally exact reconstructions.
 
 See **[Era ecology and landforms](docs/ERA-ECOLOGY.md)** for supported features and limitations.
+
+## Terrain and ocean continuity — v0.8.1
+
+A screen recording exposed a severe visual seam bug: **every terrain chunk drew a separate full-size transparent ocean rectangle**, including chunks containing coastline or land. This produced obvious blue square overlays, large specular patches, and apparent floating forests.
+
+- There is now **one continuous ocean plane**, following the camera over the streamed region. It is opaque, uses the shared zero-height sea-level datum, and has lightweight shader-driven moving ripples. No more individual full-square transparent ocean quads.
+- Inland lakes and rivers use **clipped triangles** based on the same canonical water mask instead of filling entire arbitrary grid cells. Shoreline water boundaries are less blocky.
+- When adjacent terrain tiles use different mesh subdivisions (4/8/16/32/64), the higher-detail tile's border is **stitched to the neighboring lower-detail edge**. This reduces geometric cracks and floating land strips.
+- The far horizon mesh excludes the exact footprint of nearby terrain instead of overlapping it and causing rectangular visibility differences.
+- Descending to the regional world now targets the actual **wheel pointer location on the globe** rather than always using the center of the viewport, avoiding unintended jumps into ocean when aiming at land.
+- Large reflected sun glare was reduced; reflections remain approximate screen-space material lighting, **not** physically correct ray-traced reflection.
+
+**Validation:** Node tests cover the ocean's single-plane implementation, lake/river triangle clipping, and LOD border interpolation. Real Chromium/WebGL smoke tests continue to test zoom in and back out without browser exceptions. These checks don't replace a real-person visual review of all coastlines.
 
 ## Continuous globe-to-ground zoom (v0.8)
 
