@@ -32,7 +32,7 @@ export class SurfaceView{
     sun.shadow.camera.left=-100;sun.shadow.camera.right=100;sun.shadow.camera.top=100;sun.shadow.camera.bottom=-100;
     sun.shadow.camera.far=230;this.scene.add(sun);
     this.worldRoot=new THREE.Group();this.scene.add(this.worldRoot);
-    this.characters=new Map();this.structures=new Map();this.instanced=[];this.treeMeshes=[];this.treeCount=0;this.visible=true;this.weatherFlash=0;
+    this.characters=new Map();this.structures=new Map();this.instanced=[];this.treeMeshes=[];this.treeCount=0;this.visible=true;this.weatherFlash=0;this.speed=1;this.paused=false;this.followAgentId=null;
     this.terrain=null;this.river=null;this.pointerDown=null;this.interactTargets=[];
     this.raycaster=new THREE.Raycaster();this.pointer=new THREE.Vector2();
     this.onDown=e=>this.pointerDown={x:e.clientX,y:e.clientY};
@@ -53,7 +53,7 @@ export class SurfaceView{
     requestAnimationFrame(this.frame);
   }
   setAction(action){this.action=action}
-  setWorld(world){this.world=world;this.rebuild()}
+  setWorld(world){this.world=world;this.followAgentId=null;this.rebuild()}
   addObj(mesh,x,y,z,parent=this.worldRoot){
     mesh.position.set(x,y,z);parent.add(mesh);return mesh;
   }
@@ -242,7 +242,7 @@ export class SurfaceView{
     if(!this.running)return;
     const dt=Math.min(.07,(now-this.previous)/1000);this.previous=now;
     if(!this.visible){requestAnimationFrame(this.frame);return}
-    this.world.update(dt);
+    if(!this.paused)for(let i=0;i<this.speed;i++)this.world.update(dt);
     if(Math.floor(now/500)!==Math.floor((now-dt*1000)/500))this.syncAgents();
     if(Math.floor(now/1200)!==Math.floor((now-dt*1000)/1200))this.syncBuildings();
     if(Math.floor(now/5000)!==Math.floor((now-dt*1000)/5000)){
@@ -266,6 +266,14 @@ export class SurfaceView{
         for(let i=0;i<obj.userData.legs.length;i++)
           obj.userData.legs[i].rotation.x=Math.sin(now*.010+a.id+i*Math.PI)*.20;
       }
+    }
+    if(this.followAgentId!==null){
+      const followed=this.world.agents.find(a=>a.id===this.followAgentId&&a.active);
+      if(followed){
+        const target=new THREE.Vector3(followed.x,this.world.height(followed.x,followed.z)+1.5,followed.z);
+        const delta=target.clone().sub(this.controls.target).multiplyScalar(.08);
+        this.controls.target.add(delta);this.camera.position.add(delta);
+      }else this.followAgentId=null;
     }
     this.controls.update();this.renderer.render(this.scene,this.camera);
     requestAnimationFrame(this.frame);
