@@ -190,3 +190,13 @@ p{color:#acc1d0;line-height:1.7}
   .timeline-heading strong{font-size:.87rem}
   .bottom{display:none}
 }
+
+/* Era ecosystem v0.6: compact visual weather controls inside the floating Actions HUD. */
+.environment-controls{display:grid;grid-template-columns:1fr;gap:7px;margin:6px 0 9px}
+.environment-controls label{display:flex;align-items:center;justify-content:space-between;
+  gap:8px;color:#b7cedd;font-size:.73rem}
+.environment-controls select{width:150px;min-width:0;border:1px solid #395e73;border-radius:7px;
+  background:#163649;color:#eef8ff;padding:6px;font-size:.74rem;cursor:pointer}
+#localTerrainInfo{font-size:.72rem;line-height:1.45;color:#b9d0dc;
+  border-left:2px solid #659eae;padding:5px 0 5px 9px;min-height:29px}
+@media(max-width:710px){.environment-controls select{width:min(150px,64%)}}
