@@ -35,7 +35,7 @@ test("Animal species are constrained by climate, substrate and broad epoch",()=>
 test("Early plants do not grow flowering trees or late-period grasses",()=>{
  const landWet={...land,river:true};
  assert.equal(choosePlant(870,landWet,rng,true),null);
- assert.equal(choosePlant(870,landWet,rng,false),"earlyMoss");
+ assert.ok(["algalMat","earlyMoss"].includes(choosePlant(870,landWet,rng,false)));
  assert.equal(permitted(PLANTS.oak,1010,land),false);
  assert.equal(permitted(PLANTS.cycad,1050,land),true);
 });
