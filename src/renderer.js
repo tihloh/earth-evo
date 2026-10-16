@@ -21,13 +21,14 @@ export class PlanetView {
     const w=1536,h=768;this.textureCanvas=document.createElement("canvas");this.textureCanvas.width=w;this.textureCanvas.height=h;
     this.ctx=this.textureCanvas.getContext("2d",{willReadFrequently:true});
     this.texture=new THREE.CanvasTexture(this.textureCanvas);this.texture.colorSpace=THREE.SRGBColorSpace;
-    this.planet=new THREE.Mesh(new THREE.SphereGeometry(2.35,96,64),
+    this.planetGeometry=new THREE.SphereGeometry(2.35,192,112);
+    this.planet=new THREE.Mesh(this.planetGeometry,
       new THREE.MeshStandardMaterial({map:this.texture,roughness:.94}));
     this.root.add(this.planet);
-    this.atmosphere=new THREE.Mesh(new THREE.SphereGeometry(2.395,64,48),
+    this.atmosphere=new THREE.Mesh(new THREE.SphereGeometry(2.49,64,48),
       new THREE.MeshBasicMaterial({color:0x67a8fb,transparent:true,opacity:.11,side:THREE.BackSide}));
     this.root.add(this.atmosphere);
-    this.cloudLayer=new THREE.Mesh(new THREE.SphereGeometry(2.386,64,40),
+    this.cloudLayer=new THREE.Mesh(new THREE.SphereGeometry(2.48,64,40),
       new THREE.MeshBasicMaterial({color:0xe0f1ff,wireframe:true,transparent:true,opacity:.028,depthWrite:false}));
     this.root.add(this.cloudLayer);
     this.lifeLayer=new THREE.Group();this.root.add(this.lifeLayer);
@@ -37,12 +38,28 @@ export class PlanetView {
       starPositions[i*3]=Math.cos(phi)*r*distance;starPositions[i*3+1]=t*distance;starPositions[i*3+2]=Math.sin(phi)*r*distance;}
     const starsGeo=new THREE.BufferGeometry();starsGeo.setAttribute("position",new THREE.BufferAttribute(starPositions,3));
     this.scene.add(new THREE.Points(starsGeo,new THREE.PointsMaterial({color:0xd4e3ff,size:.045})));
-    this.lastSurface="";this.lastMarkers=-1;this.geographyCache=null;
+    this.lastSurface="";this.lastMarkers=-1;this.geographyCache=null;this.reliefKey="";
     this.resizeObserver=new ResizeObserver(()=>this.resize());this.resizeObserver.observe(viewport);
     this.resize();
     this.previous=performance.now();this.running=true;this.frame=this.frame.bind(this);requestAnimationFrame(this.frame);
   }
   setGlide(value){setCameraGlide(this.controls,value)}
+  updateRelief(world){
+    const key=world.seed+"/"+Math.round(world.seaShift*1000);
+    if(this.reliefKey===key)return;
+    this.reliefKey=key;
+    const geometry=this.planetGeometry,positions=geometry.attributes.position,uv=geometry.attributes.uv;
+    for(let i=0;i<positions.count;i++){
+      const coord=globeUVToGeo(uv.getX(i),uv.getY(i));
+      const s=sampleGeography(coord.lat,coord.lon,world.seed,world.seaShift);
+      const radius=2.35+(s.land?Math.min(.115,Math.max(0,s.height)*.0028):0);
+      const vx=positions.getX(i),vy=positions.getY(i),vz=positions.getZ(i);
+      const len=Math.hypot(vx,vy,vz)||1;
+      positions.setXYZ(i,vx*radius/len,vy*radius/len,vz*radius/len);
+    }
+    positions.needsUpdate=true;geometry.computeVertexNormals();
+    geometry.computeBoundingSphere();
+  }
   surfacePosition(lon,lat,radius=2.373){
     const phi=lat*Math.PI/180,theta=lon*Math.PI/180;
     // Three.js sphere uses the polar axis on Y.
@@ -55,6 +72,7 @@ export class PlanetView {
       Math.round(world.cooling*10),world.speciesCount].join("/");
     if(force||key!==this.lastSurface){
       this.lastSurface=key;this.drawSurface(world);
+      this.updateRelief(world);
     }
     if(force||world.tick!==this.lastMarkers){
       this.lastMarkers=world.tick;
