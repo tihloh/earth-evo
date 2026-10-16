@@ -40,7 +40,7 @@ In the local Actions HUD:
 
 ## Landforms and bodies of water
 
-`src/physical-features.js` defines a broad **28-entry landform vocabulary** and **17-entry water-body vocabulary**: mountains/ranges, ridges, volcanic/crater forms, plateaus/mesas, hills, valleys, canyons/gorges, cliffs, plains/basins, deserts/dunes, beaches, islands, peninsulas/capes/isthmuses, deltas, floodplains, marsh/wetlands, glaciers, and cave entrances; ocean/sea/bays/gulfs, straits/channels, lagoons, inland lakes/ponds, rivers/streams, estuaries/waterfalls, reefs, fjords and glacial inlets.
+`src/physical-features.js` defines a broad **29-entry landform vocabulary** and **17-entry water-body vocabulary**: mountains/ranges, ridges, volcanic/crater forms, plateaus/mesas, hills, valleys, canyons/gorges, cliffs, plains/basins, deserts/dunes, beaches, islands, peninsulas/capes/isthmuses, deltas, floodplains, marsh/wetlands, glaciers, and cave entrances; ocean/sea/bays/gulfs, straits/channels, lagoons, inland lakes/ponds, rivers/streams, estuaries/waterfalls, reefs, fjords and glacial inlets.
 
 The shared synthetic Earth sampler distinguishes land, water, moist biomes and certain inland lakes/lagoons. `src/surface-view.js` constructs ocean surfaces and narrow/low-cost local freshwater polygons. `src/landform-view.js` places **sparse low-poly landmark cues** in the nearest tiles (rocks, crater rims, cave mouths, dune humps, glaciers, corals, waterfalls). The HUD displays a local classification at the camera focus.
 
