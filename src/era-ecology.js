@@ -76,3 +76,14 @@ export function humanStyle(era,g){
  if(era<1590)return {period:"contemporary",outfit:g.temperature<12?"jacket":"shirt-and-trousers",material:"textile"};
  return {period:"speculative",outfit:"technical-suit",material:"composite"};
 }
+
+export const ECOLOGY_TRANSITIONS=Object.freeze([...new Set([
+ ...Object.values(SPECIES).flatMap(s=>[s.min,s.max]),
+ ...Object.values(PLANTS).flatMap(p=>[p.min,p.max]),
+ 1250,1310,1410,1490,1540,1590
+])].filter(t=>t>=0&&t<=1600).sort((a,b)=>a-b));
+export function ecologyStageAt(tick){
+ let stage=0;
+ for(const t of ECOLOGY_TRANSITIONS){if(t>tick)break;stage=t}
+ return stage;
+}
