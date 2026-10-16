@@ -3,7 +3,7 @@
 
 **Earth Evo** is an interactive simulation prototype that follows a fictionalized, science-inspired Earth from planetary formation (~4.54 billion years ago), through the emergence and diversification of life, to human settlements and hypothetical futures.
 
-**Current status: v0.7 — recognizable species anatomy, sculpted mountain relief, displaced 3D globe, landscape explorer and detailed/instanced animal LOD.** It includes a navigable planetary globe, a close-up procedural regional world with autonomous creatures, and a simplified worldwide ecosystem/civilization simulation. It is **not** a physically accurate 4.54-billion-year reconstruction, a full Darwinian genetics simulator, or a Civilization-scale strategy game.
+**Current status: v0.8 — continuous wheel-driven globe-to-ground zoom, real-browser-tested handoff, seeded nested terrain LOD, plus v0.7 wildlife and landscapes.** It includes a navigable planetary globe, a close-up procedural regional world with autonomous creatures, and a simplified worldwide ecosystem/civilization simulation. It is **not** a physically accurate 4.54-billion-year reconstruction, a full Darwinian genetics simulator, or a Civilization-scale strategy game.
 
 ## Run it
 
@@ -129,6 +129,22 @@ shoreline erosion and hydrodynamics are still not implemented.
 - Human figures use broad era-sensitive garments: early wraps, woven/fur tunics, historic robes, industrial coats, contemporary casualwear and speculative suits. These are generalized prototypes, not historically or culturally exact reconstructions.
 
 See **[Era ecology and landforms](docs/ERA-ECOLOGY.md)** for supported features and limitations.
+
+## Continuous globe-to-ground zoom (v0.8)
+
+You can now simply **scroll inward on the globe** to descend into the same geographic area, keep scrolling to approach trees, wildlife, and individual terrain features, then **scroll outward** to return to the globe.
+
+- A view-independent `ZoomContinuum` accumulates inward wheel or trackpad gestures, including after the globe camera reaches its normal minimum distance. It no longer relies only on OrbitControls crossing a single radius. This resolves the previously broken descent.
+- The handoff uses a **short aligned crossfade** between a planetary renderer and a local high-detail renderer. It is intentionally a **visual illusion of a single limitless view**, not yet one physically continuous 3D mesh.
+- Detailed chunks are generated **deterministically from the same global lat/lon `sampleGeography()` elevation and biome sampler** used by the planet. No independent random replacement terrain. Local terrain uses nested **4/8/16/32/64** subdivisions selected by camera distance; coarser parent samples are reused by finer grids.
+- Distant mountains remain visible through a low-cost horizon mesh. High-detail animals and plants are instantiated nearby, and far wildlife uses instanced simplifications.
+- **Mouse:** left drag = pan, right drag = rotate, wheel = zoom. There is a hidden-at-rest fallback **Explore surface** button if automatic zoom encounters an unusual input device.
+- The local camera can zoom close to individual creatures. Hysteresis prevents rapid switching between scales when scrolling around the boundary.
+- In case initialization fails, the globe is restored and the actual error appears in the status area, rather than silently locking out zoom.
+
+**Verification:** `npm test` covers camera mapping, deterministic terrain samples and zoom policy. `tests/browser-zoom.mjs` and `.github/workflows/browser-smoke.yml` run a real headless Chromium/WebGL test which actually scrolls **in and back out**, catching renderer crashes that earlier source-only tests missed.
+
+**Limits:** Chunk streaming and crossfading imitate multi-resolution terrain as used in open-world engines, but they are **not** Minecraft's voxel meshing algorithm, photogrammetric Google Earth, exact terrain topology at every on-screen pixel, or literal unlimited mathematical zoom. Geographic degrees-to-local units and character proportions are gameplay approximations, not physically correct kilometer/metre ratios.
 
 ## Camera navigation and compact HUD
 
