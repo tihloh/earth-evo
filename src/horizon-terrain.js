@@ -8,7 +8,8 @@ const color=new THREE.Color(),sky=new THREE.Color(0xb7cddd);
 export function buildHorizonTerrain(world,cx,cz,nearRadius=3){
  const chunk=48,outerRadius=Math.max(nearRadius+5,9)*chunk;
  const step=24,centerX=cx*chunk,centerZ=cz*chunk;
- const verts=[],colors=[],tris=0;
+ const verts=[],colors=[];
+ let tris=0;
  const inner=(nearRadius+.42)*chunk;
  function sample(x,z){
    const s=world.sample(centerX+x,centerZ+z);
