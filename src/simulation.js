@@ -60,6 +60,7 @@ function createWorld(seed){
     const x=i%W,y=Math.floor(i/W),lat=90-(y+.5)*180/H,lon=-180+(x+.5)*360/W;
     const g=sampleGeography(lat,lon,seed);
     return {i,x,y,lat,lon,elevation:g.elevation,moisture:g.moisture,
+      lakeEligible:g.lakeEligible,
       fertility:clamp(.32+.58*g.moisture-(g.height>6?.13:0),.16,1)};
   });
 }
@@ -89,7 +90,10 @@ export class World{
     for(const cell of this.cells)if(!this.isLand(cell))water++;
     return water/this.cells.length;
   }
-  isLand(cell){return cell.elevation>.08+this.seaShift*.5}
+  isLand(cell){
+    const above=cell.elevation-(.08+this.seaShift*.5);
+    return above>0&&!(cell.lakeEligible&&above<.048);
+  }
   localTemp(cell){return this.temperature-30*Math.abs(cell.lat)/90+2*Math.cos(cell.lon*Math.PI/110)}
   fitness(s,c){
     if(this.isLand(c)!==(s.habitat==="land"))return 0;
