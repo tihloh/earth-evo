@@ -32,40 +32,75 @@ function eyes(head,sideX=.32,y=.09,z=.50){
  }
 }
 function dinosaur(a){
- const root=new THREE.Group(),body=new THREE.Group();root.add(body);
- const species=a.species,herb=species!=="theropod";
- const tint=species==="stegosaur"?0x78926a:species==="sauropod"?0x80968c:0x96745b;
- part(body,"orb",tint,0,1.6,0,.71,.69,1.20);
- const neck=new THREE.Group();neck.position.set(0,1.61,.65);body.add(neck);
+ const species=a.species,root=new THREE.Group(),body=new THREE.Group();root.add(body);
+ const biped=["theropod","spinosaurus","hadrosaur"].includes(species);
  const long=species==="sauropod";
- part(neck,"leg",tint,0,long?.83:.35,long?.75:.40,
-  long?.35:.35,long?2.7:1.1,long?.34:.35,long?Math.PI/3:.43);
- const head=new THREE.Group();head.position.set(0,long?2.05:.69,long?1.6:.70);neck.add(head);
- part(head,"orb",tint,0,0,.1,long?.29:.53,.31,.48);
- part(head,"low",herb?0xa9a688:0xd2b18d,0,-.20,.46,.42,.19,.40);
- eyes(head,.26,.07,.5);
- const tail=new THREE.Group();tail.position.set(0,1.6,-1);body.add(tail);
- part(tail,"cone",tint,0,.06,-1,.43,2.65,.42,Math.PI/2);
- if(species==="stegosaur"){
-   for(let i=0;i<6;i++){
-     const z=.8-i*.38;
-     part(body,"low",0xbe986a,0,2.15+i*.06,z,.17,.59,.39,0,0,.3);
+ const crest=species==="triceratops",armored=species==="ankylosaur";
+ const skin={
+   sauropod:0x819487,stegosaur:0x7c966e,theropod:0x93735b,
+   spinosaurus:0x79948e,triceratops:0x8c9270,ankylosaur:0x927e64,
+   hadrosaur:0x9a9273
+ }[species]||0x918774;
+ const y=armored?1.16:1.55;
+ part(body,"orb",skin,0,y,0,armored?.94:.72,armored?.56:.62,long?1.33:1.08);
+ if(armored)for(let i=0;i<16;i++){
+   const row=Math.floor(i/8),index=i%8;
+   part(body,"cone",0x675b4c,(row===0?-.58:.58),1.62,-.8+index*.22,
+     .20,.46,.21,0,0,(row===0?-.3:.3));
+ }
+ const neck=new THREE.Group();neck.position.set(0,y+.12,.63);body.add(neck);
+ part(neck,"leg",skin,0,long?1.13:.24,long?.95:.35,
+   long?.30:.40,long?2.80:.90,long?.28:.39,long?Math.PI/3:.46);
+ const head=new THREE.Group();head.position.set(0,long?2.27:.56,long?1.8:.78);neck.add(head);
+ part(head,"orb",skin,0,0,0,long?.34:crest?.59:.42,.34,long?.45:.51);
+ if(crest){
+   part(head,"orb",0xd9d0af,0,.31,-.30,.88,.72,.19);
+   part(head,"cone",0xe6dfc6,0,.13,.47,.21,.88,.20,Math.PI/2);
+   for(const side of [-1,1])
+     part(head,"cone",0xd9d1ba,side*.37,.38,.49,.16,1.05,.16,Math.PI/2.7,0,side*.2);
+   part(head,"low",0xd5c9a6,0,-.23,.49,.30,.18,.35);
+ }else if(armored){
+   part(head,"box",skin,0,-.17,.37,.55,.28,.67);
+   for(const side of [-1,1])part(head,"cone",0x79684e,side*.49,.04,.23,.23,.60,.20,0,0,side*.7);
+ }else if(species==="hadrosaur"){
+   part(head,"orb",0xbeb38e,0,-.18,.36,.35,.27,.42);
+   part(head,"cone",0x947455,0,.50,-.15,.21,.80,.18,0,0,-.40);
+ }else{
+   const predator=["theropod","spinosaurus"].includes(species);
+   part(head,"box",predator?0xb0a187:0xc0b9a2,0,-.22,.43,.38,.21,
+     predator?.69:.40);
+   for(const side of [-1,1]){
+     if(predator)for(let i=0;i<4;i++)
+       part(head,"cone",0xe9e0c9,side*.29,-.39,.46+i*.13,.07,.20,.09,0,0,Math.PI);
    }
-   for(const side of [-1,1])part(tail,"cone",0x866b4f,side*.27,.3,-1.85,.11,.75,.11,Math.PI/2);
+   if(predator)part(head,"box",0x50453d,0,-.46,.52,.33,.07,.58);
+ }
+ for(const side of [-1,1])part(head,"eye",0x212821,side*(crest?.41:.30),.12,.39,.085,.085,.055);
+ const tail=new THREE.Group();tail.position.set(0,y,-1.05);body.add(tail);
+ part(tail,"cone",skin,0,0,-1.00,.46,2.55,.44,-Math.PI/2);
+ if(species==="stegosaur")for(let i=0;i<7;i++){
+   part(body,"low",0xccae7e,0,y+.48,-.85+i*.28,.20,.56,.35,0,0,i%2?.24:-.24);
+ }
+ if(species==="spinosaurus")for(let i=0;i<8;i++){
+   const z=-.7+i*.25,h=(1.1+1.3*Math.sin(i/7*Math.PI));
+   part(body,"cone",0xa36c5e,0,y+.41+h*.38,z,.20,h,.18);
+ }
+ if(armored){
+   part(tail,"orb",0x796550,0,-.07,-2.18,.45,.40,.52);
+   for(const side of [-1,1])part(tail,"cone",0x7d6d54,side*.33,.1,-2.14,.13,.43,.13,0,0,side*.5);
  }
  const legs=[];
- if(species==="theropod"){
+ if(biped){
    for(const side of [-1,1]){
-     legs.push(limb(body,side*.48,1.35,-.33,tint,1.20));
-     const arm=limb(body,side*.50,1.78,.57,tint,.46,false);
-     arm.rotation.x=.7;
+     legs.push(limb(body,side*.45,1.31,-.43,skin,1.16));
+     if(species!=="hadrosaur"){
+       const arm=limb(body,side*.5,1.72,.49,skin,.43,false);
+       arm.rotation.x=.4;
+     }
    }
-   body.rotation.x=-.06;
- }else{
-   for(const z of [-.67,.76])for(const side of [-1,1])
-     legs.push(limb(body,side*.50,1.20,z,tint,1.10));
- }
- root.userData={legs,head,body,tail};
+ }else for(const zz of [-.70,.79])for(const side of [-1,1])
+   legs.push(limb(body,side*.56,1.20,zz,skin,1.03));
+ root.userData={legs,head,body,tail,modelFamily:species};
  return root;
 }
 function flying(a){
@@ -171,7 +206,8 @@ function human(a){
 export function createCreatureModel(a){
  const spec=a.species||"deer";
  const root=a.type==="human"?human(a):a.type==="marine"?marine(a):
-   ["sauropod","stegosaur","theropod"].includes(spec)?dinosaur(a):
+   ["sauropod","stegosaur","theropod","triceratops","ankylosaur",
+     "hadrosaur","spinosaurus"].includes(spec)?dinosaur(a):
    a.type==="bird"?flying(a):createLandAnimal(a);
  root.userData.agentId=a.id;
  root.scale.setScalar(Math.max(.35,Math.min(3.6,(a.size||1)*.78)));
