@@ -45,11 +45,11 @@ export function configurePrecisionCamera(controls, kind = "surface", glide = DEF
   return controls;
 }
 
-export function confineSurfaceTarget(controls, camera, halfSize = 83) {
+export function confineSurfaceTarget(controls, camera, halfSize = 83, ceiling = 38) {
   const t = controls.target;
   const x = Math.max(-halfSize, Math.min(halfSize, t.x));
   const z = Math.max(-halfSize, Math.min(halfSize, t.z));
-  const y = Math.max(-6, Math.min(38, t.y));
+  const y = Math.max(-80, Math.min(ceiling, t.y));
   const dx = x - t.x, dy = y - t.y, dz = z - t.z;
   if (dx || dy || dz) {
     // Move camera and focus together: no view-angle jump or rubber-band bounce.
