@@ -345,6 +345,9 @@ export class SurfaceWorld {
   toJSON(){
     return {version:1,seed:this.seed,era:this.era,lat:this.lat,lon:this.lon,seaShift:this.seaShift,
       undergrowth:this.undergrowth.map(p=>({...p})),
+      streamLoaded:[...(this.streamLoaded||[])],
+      exploredChunks:[...(this.exploredChunks||[])],
+      streamCache:[...(this.streamCache||new Map())],
       rng:this.rng.value,time:this.time,elapsed:this.elapsed,nextId:this.nextId,
       trees:this.trees.map(t=>({...t})),agents:this.agents.map(a=>({
         ...a,personality:{...a.personality},memory:{...a.memory},
@@ -359,7 +362,7 @@ export class SurfaceWorld {
       !Number.isFinite(save.lat)||Math.abs(save.lat)>90||
       !Number.isFinite(save.lon)||Math.abs(save.lon)>180||
       !Array.isArray(save.agents)||save.agents.length>200||
-      !Array.isArray(save.trees)||save.trees.length>600||
+      !Array.isArray(save.trees)||save.trees.length>800||
       !Array.isArray(save.structures)||save.structures.length>50||
       !Number.isFinite(save.time)||save.time<0||save.time>1e8||
       !Number.isFinite(save.nextId)||save.nextId<1||save.nextId>1000000||
@@ -375,12 +378,32 @@ export class SurfaceWorld {
       memory:{...a.memory},skill:{...a.skill},target:a.target?{...a.target}:null}));
     w.trees=save.trees.map(t=>({...t}));w.structures=save.structures.map(s=>({...s}));
     if(save.undergrowth!==undefined){
-      if(!Array.isArray(save.undergrowth)||save.undergrowth.length>1200||
+      if(!Array.isArray(save.undergrowth)||save.undergrowth.length>2000||
         save.undergrowth.some(p=>!Number.isFinite(p.x)||!Number.isFinite(p.z)||
           Math.abs(p.x)>10000||Math.abs(p.z)>10000))throw Error("Invalid ground cover");
       w.undergrowth=save.undergrowth.map(p=>({...p}));
     }
     w.events=Array.isArray(save.events)?save.events.slice(0,25).map(e=>({...e})):[];
+    if(save.streamLoaded!==undefined){
+      if(!Array.isArray(save.streamLoaded)||save.streamLoaded.length>40||
+        save.streamLoaded.some(k=>typeof k!=="string"||! /^-?\d+,-?\d+$/.test(k)))
+        throw Error("Invalid active chunks");
+      w.streamLoaded=new Set(save.streamLoaded);
+    }
+    if(save.exploredChunks!==undefined){
+      if(!Array.isArray(save.exploredChunks)||save.exploredChunks.length>10000)
+        throw Error("Invalid exploration state");
+      w.exploredChunks=new Set(save.exploredChunks);
+    }
+    if(save.streamCache!==undefined){
+      if(!Array.isArray(save.streamCache)||save.streamCache.length>96||
+        save.streamCache.some(entry=>!Array.isArray(entry)||entry.length!==2||
+          typeof entry[0]!=="string"||!entry[1]||
+          !Array.isArray(entry[1].trees)||!Array.isArray(entry[1].cover)||
+          !Array.isArray(entry[1].agents)||!Array.isArray(entry[1].structures)))
+        throw Error("Invalid streamed chunk state");
+      w.streamCache=new Map(save.streamCache);
+    }
     w.village={...save.village};
     w.rain=Number(save.rain)||0;w.fertility=Number(save.fertility)||1;
     w.lastBirth=Number(save.lastBirth)||0;w.lastSeed=Number(save.lastSeed)||0;
