@@ -4,6 +4,7 @@ import {SurfaceWorld} from "./surface-world.js";
 import {ecologyStageAt,SPECIES} from "./era-ecology.js";
 import {findScenicLocation} from "./geography.js";
 import {SurfaceView} from "./surface-view.js";
+import {enterSurfaceAt,ZOOM_CROSSFADE_MS} from "./zoom-transition.js";
 import * as THREE from "three";
 
 const $=id=>document.getElementById(id);
@@ -13,6 +14,7 @@ let playing=false,speed=12,accumulator=0,lastFrame=performance.now();
 let pendingSeek=null,seekFrame=false,rendering=false;
 let localActive=false,localView=null,localWorld=null,localEra=-1,localSeed=-1;
 let focus={lat:-20,lon:-55},inspectedId=null,lastLocalUi=0;
+let focusPinned=false,transitionToken=0;
 const hudState={left:window.innerWidth>850,right:window.innerWidth>710};
 function setHud(side,opened){
   if(side!=="left"&&side!=="right")return;
@@ -99,7 +101,9 @@ function createSurface(force=false){
   if(!localActive)return;
   const era=eraAt(world.tick).t+"/"+ecologyStageAt(world.tick);
   if(force||!localWorld||era!==localEra||localSeed!==world.seed||
-    localWorld.seaShift!==world.seaShift){
+    localWorld.seaShift!==world.seaShift||
+    Math.abs(localWorld.lat-focus.lat)>1e-5||
+    Math.abs(localWorld.lon-focus.lon)>1e-5){
     localEra=era;localSeed=world.seed;
     localWorld=new SurfaceWorld(world.seed,world.tick,focus.lat,focus.lon,world.seaShift);
     inspectedId=null;
@@ -108,10 +112,77 @@ function createSurface(force=false){
   refreshSpeciesPicker();
   updateLocalUi(true);
 }
+// A zoom gesture crosses scales with an animated overlapping render. The
+// planet and detailed region share their geographic sampler but use different
+// geometry/scale domains; the crossfade avoids a hard blank-screen cut.
+function centerPlanetFocus(){
+  const ray=new THREE.Raycaster();
+  ray.setFromCamera(new THREE.Vector2(0,0),view.camera);
+  const hit=ray.intersectObject(view.planet)[0];
+  if(!hit)return focus;
+  const radial=view.root.worldToLocal(hit.point.clone()).normalize();
+  return {lat:Math.asin(radial.y)*180/Math.PI,
+    lon:Math.atan2(radial.z,-radial.x)*180/Math.PI};
+}
+function alignSurfaceCamera(){
+  if(!localView||!localWorld)return;
+  const point=view.surfacePosition(focus.lon,focus.lat,2.35);
+  const relative=view.camera.position.clone().sub(point);
+  const lat=focus.lat*Math.PI/180,lon=focus.lon*Math.PI/180;
+  const east=new THREE.Vector3(Math.sin(lon),0,Math.cos(lon));
+  const north=new THREE.Vector3(Math.sin(lat)*Math.cos(lon),
+    Math.cos(lat),-Math.sin(lat)*Math.sin(lon));
+  let x=relative.dot(east),z=-relative.dot(north);
+  const length=Math.hypot(x,z);
+  if(length<.03){x=.55;z=.83}else{x/=length;z/=length}
+  const height=localWorld.height(0,0);
+  localView.controls.target.set(0,height,0);
+  localView.camera.position.set(x*91,height+61,z*91);
+  localView.controls.update();
+  localView.updateTiles(true);
+}
+function alignPlanetCamera(){
+  if(!localWorld||!localView)return;
+  const t=localView.controls.target;
+  const point=localWorld.sample(t.x,t.z);
+  focus={lat:point.lat,lon:point.lon};
+  const radial=view.surfacePosition(focus.lon,focus.lat,1).normalize();
+  view.controls.target.set(0,0,0);
+  view.camera.position.copy(radial.multiplyScalar(4.65));
+  view.controls.update();
+}
+function blendWorldView(toSurface){
+  const token=++transitionToken;
+  $("globeViewport").hidden=false;
+  $("surfaceViewport").hidden=false;
+  if(toSurface){
+    localView.visible=true;
+    view.controls.enabled=false;
+    localView.controls.enabled=true;
+    requestAnimationFrame(()=>{
+      if(token===transitionToken)document.body.classList.add("world-surface");
+    });
+  }else{
+    view.controls.enabled=true;
+    if(localView)localView.controls.enabled=false;
+    document.body.classList.remove("world-surface");
+  }
+  // Reduced-motion clients use a near-instant transition (matching CSS).
+  const reduced=window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
+  setTimeout(()=>{
+    if(token!==transitionToken)return;
+    if(toSurface)$("globeViewport").hidden=true;
+    else{
+      $("surfaceViewport").hidden=true;
+      if(localView)localView.visible=false;
+    }
+  },reduced?50:ZOOM_CROSSFADE_MS+60);
+}
 function enterSurface(){
   if(localActive)return;
-  setPlaying(false);localActive=true;
-  $("globeViewport").hidden=true;
+  setPlaying(false);
+  if(!focusPinned)focus=centerPlanetFocus();
+  focusPinned=false;localActive=true;
   $("surfaceViewport").hidden=false;
   $("localPanel").hidden=false;
   createSurface(false);
@@ -127,21 +198,18 @@ function enterSurface(){
   localView.setWeatherChoice($("weatherMode").value);
   refreshSpeciesPicker();
   localView.resize();
-  setHud("left",false);
-  setHud("right",true);
-  $("localLabel").textContent="Surface region · "+Math.abs(focus.lat).toFixed(1)+"°"+
-    (focus.lat>=0?" N":" S")+" · "+Math.abs(focus.lon).toFixed(1)+"°"+(focus.lon>=0?" E":" W");
-  $("enterSurface").textContent="⌕ Explore surface";
+  alignSurfaceCamera();
+  setHud("left",false);setHud("right",true);
+  blendWorldView(true);
   updateLocalUi(true);
 }
 function leaveSurface(){
   if(!localActive)return;
+  alignPlanetCamera();
   localActive=false;
-  $("surfaceViewport").hidden=true;$("globeViewport").hidden=false;$("localPanel").hidden=true;
-  if(localView)localView.visible=false;
-  // Keep the last planet orbit, avoiding a sudden reset when returning.
-  view.controls.update();view.resize();
+  $("localPanel").hidden=true;
   if(window.innerWidth>850)setHud("left",true);
+  blendWorldView(false);
 }
 function showInspection(agent){
   inspectedId=agent?.id??null;
@@ -231,6 +299,7 @@ $("globe").addEventListener("pointerup",e=>{
   if(hit.length){
     const p=view.root.worldToLocal(hit[0].point.clone()).normalize();
     focus={lat:Math.asin(p.y)*180/Math.PI,lon:Math.atan2(p.z,-p.x)*180/Math.PI};
+    focusPinned=true;
     $("globeSelection").textContent="Area selected: "+focus.lat.toFixed(1)+"°, "+focus.lon.toFixed(1)+"° · Zoom in to explore";
   }
 });
@@ -372,7 +441,7 @@ $("loadFile").addEventListener("change",async event=>{
 });
 function animate(now){
   const dt=Math.min(.12,(now-lastFrame)/1000);lastFrame=now;
-  if(!localActive&&view.camera.position.distanceTo(view.controls.target)<3.65)enterSurface();
+  if(enterSurfaceAt(view.camera.position.distanceTo(view.controls.target),localActive))enterSurface();
   if(localActive)updateLocalUi();
   if(playing){
     accumulator+=dt*speed;
