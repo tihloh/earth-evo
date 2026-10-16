@@ -100,3 +100,9 @@ p{color:#acc1d0;line-height:1.7}
   .surface-overlay.top{top:12px;left:12px}.surface-overlay.bottom{left:12px;right:12px}
   .enter-surface{right:12px;top:18px}
   #localPanel .god-grid{grid-template-columns:repeat(2,1fr)}}
+
+.local-clock{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.local-clock label{color:#bed3e0;font-size:.77rem}
+.local-clock select{padding:7px 9px;border:1px solid #345971;background:#162f45;color:#f5fcff;border-radius:7px}
+.follow-button{display:block;margin-top:8px;width:100%;background:#143a45;border-color:#3a878b;text-align:center}
+.follow-button:disabled{background:#142839;opacity:.5}
