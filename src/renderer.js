@@ -85,7 +85,7 @@ export class PlanetView {
     for(let y=0;y<height;y++)for(let x=0;x<width;x++){
       const i=y*width+x,elevation=geo.samples[i],above=elevation-seaLevel,
         lake=above>0&&above<.048&&geo.lakes[i]===1,land=above>0&&!lake,
-        h=(elevation-seaLevel)*17.5,latitude=Math.abs(geo.latitudes[y]),
+        h=(elevation-seaLevel)*28,latitude=Math.abs(geo.latitudes[y]),
         moist=geo.moisture[i],temp=geo.temperatures[i];
       const sample={land,height:h,waterKind:lake?"lake":(!land?"ocean":null),ice:land&&(latitude>74||temp<-8),
         river:land&&moist>.45&&h<8&&geo.channels[i]<.075,moisture:moist,
