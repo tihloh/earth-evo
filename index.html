@@ -26,6 +26,13 @@
         <option value="5">Soft (5%)</option>
       </select>
     </label>
+    <label class="camera-quality" for="renderDistance">Visibility
+      <select id="renderDistance" aria-label="Open world render distance">
+        <option value="2">Fast · 2 tiles</option>
+        <option value="3" selected>Balanced · 3</option>
+        <option value="4">Far · 4</option>
+      </select>
+    </label>
   </div>
 </header>
 <div class="workspace">
@@ -72,7 +79,7 @@
         <button type="button" id="leaveSurface">← Return to planet</button>
         <div id="localLabel" class="surface-caption">Living region</div>
       </div>
-      <div class="surface-overlay bottom">Drag to orbit · Right drag to pan · Cursor-focused zoom · Click to inspect or use powers</div>
+      <div class="surface-overlay bottom">Open world · drag to orbit · right drag to explore · fog hides distant tiles · inspect or use god powers</div>
     </div>
   </main>
   <aside id="actionsHud" class="right hud-panel" aria-label="Ecological changes and interventions">
