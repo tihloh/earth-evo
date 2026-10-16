@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import {OrbitControls} from "three/addons/controls/OrbitControls.js";
 import {W,H} from "./simulation.js";
+import {sampleGeography,globeUVToGeo,globeColor,SEA_LEVEL} from "./geography.js";
 import {configurePrecisionCamera,setCameraGlide} from "./camera-controls.js";
 
 export class PlanetView {
@@ -17,7 +18,7 @@ export class PlanetView {
     this.root=new THREE.Group();this.scene.add(this.root);
     this.scene.add(new THREE.AmbientLight(0xb1c8e4,1.55));
     const sun=new THREE.DirectionalLight(0xffe9c9,3.4);sun.position.set(5,4,7);this.scene.add(sun);
-    const w=1024,h=512;this.textureCanvas=document.createElement("canvas");this.textureCanvas.width=w;this.textureCanvas.height=h;
+    const w=1536,h=768;this.textureCanvas=document.createElement("canvas");this.textureCanvas.width=w;this.textureCanvas.height=h;
     this.ctx=this.textureCanvas.getContext("2d",{willReadFrequently:true});
     this.texture=new THREE.CanvasTexture(this.textureCanvas);this.texture.colorSpace=THREE.SRGBColorSpace;
     this.planet=new THREE.Mesh(new THREE.SphereGeometry(2.35,96,64),
@@ -36,7 +37,7 @@ export class PlanetView {
       starPositions[i*3]=Math.cos(phi)*r*distance;starPositions[i*3+1]=t*distance;starPositions[i*3+2]=Math.sin(phi)*r*distance;}
     const starsGeo=new THREE.BufferGeometry();starsGeo.setAttribute("position",new THREE.BufferAttribute(starPositions,3));
     this.scene.add(new THREE.Points(starsGeo,new THREE.PointsMaterial({color:0xd4e3ff,size:.045})));
-    this.lastSurface="";this.lastMarkers=-1;
+    this.lastSurface="";this.lastMarkers=-1;this.geographyCache=null;
     this.resizeObserver=new ResizeObserver(()=>this.resize());this.resizeObserver.observe(viewport);
     this.resize();
     this.previous=performance.now();this.running=true;this.frame=this.frame.bind(this);requestAnimationFrame(this.frame);
@@ -62,38 +63,41 @@ export class PlanetView {
   }
   drawSurface(world){
     const width=this.textureCanvas.width,height=this.textureCanvas.height;
-    const pixels=this.ctx.createImageData(width,height),out=pixels.data;
-    const landscape=world.tick>=850;
-    const life=world.speciesCount>0,seaLevel=.08+world.seaShift*.5;
-    for(let y=0;y<height;y++){
-      const gridY=Math.min(H-1,Math.floor(y/height*H));
-      for(let x=0;x<width;x++){
-        const gridX=Math.min(W-1,Math.floor(x/width*W));
-        const cell=world.cells[gridY*W+gridX];
-        const land=cell.elevation>seaLevel;
-        const icy=Math.abs(cell.lat)>74&&world.tick>=120;
-        const heightTone=Math.max(0,Math.min(1,(cell.elevation-.08)*1.4));
-        const biome=world.regions[cell.i],green=landscape?
-          Math.min(1,biome.plant/12):0;
-        let rgb;
-        if(world.tick<120){
-          const heat=1-world.tick/120;
-          rgb=land?[Math.round(110+120*heat+45*heightTone),Math.round(51+28*heightTone),26]:
-            [Math.round(49+100*heat),32,40];
-        }else if(!land){
-          const shallow=Math.max(0,Math.min(1,(cell.elevation+0.24)*1.3));
-          rgb=[8+16*shallow,52+42*shallow,102+43*shallow];
-        }else if(icy){rgb=[210,224,235];}
-        else if(landscape){rgb=[
-          112-62*green+25*heightTone,
-          102+45*green+30*heightTone,
-          67+20*green+20*heightTone];
-        }else{rgb=[123+28*heightTone,105+24*heightTone,79+15*heightTone]}
-        const k=(y*width+x)*4;
-        out[k]=rgb[0];out[k+1]=rgb[1];out[k+2]=rgb[2];out[k+3]=255;
+    const size=width*height;
+    if(!this.geographyCache||this.geographyCache.seed!==world.seed){
+      const samples=new Float32Array(size),moisture=new Float32Array(size),
+        temperatures=new Float32Array(size),rivers=new Uint8Array(size),latitudes=new Float32Array(height);
+      for(let y=0;y<height;y++){
+        const {lat}=globeUVToGeo(0,(y+.5)/height);
+        latitudes[y]=lat;
+        for(let x=0;x<width;x++){
+          const {lon}=globeUVToGeo((x+.5)/width,(y+.5)/height);
+          const s=sampleGeography(lat,lon,world.seed,0),index=y*width+x;
+          samples[index]=s.elevation;moisture[index]=s.moisture;
+          temperatures[index]=s.temperature;rivers[index]=s.river?1:0;
+        }
       }
+      this.geographyCache={seed:world.seed,samples,moisture,temperatures,rivers,latitudes};
     }
-    this.ctx.putImageData(pixels,0,0);this.texture.needsUpdate=true;
+    const geo=this.geographyCache;
+    const image=this.ctx.createImageData(width,height),pixels=image.data;
+    const seaLevel=SEA_LEVEL+world.seaShift*.5,era=world.tick;
+    for(let y=0;y<height;y++)for(let x=0;x<width;x++){
+      const i=y*width+x,elevation=geo.samples[i],land=elevation>seaLevel,
+        h=(elevation-seaLevel)*17.5,latitude=Math.abs(geo.latitudes[y]),
+        moist=geo.moisture[i],temp=geo.temperatures[i];
+      const sample={land,height:h,ice:land&&(latitude>74||temp<-8),
+        river:land&&geo.rivers[i]===1&&h<8,moisture:moist,
+        biome:!land?"ocean":h>8?"alpine":moist>.65?"forest":moist<.35?"dryland":"grassland"};
+      const rgb=globeColor(sample,era);
+      // Relief shading is computed from the same elevation samples, not a separate map.
+      const nX=x===width-1?y*width:y*width+x+1;
+      const shade=Math.max(.76,Math.min(1.20,.98+(geo.samples[nX]-elevation)*2.9));
+      const p=i*4;
+      pixels[p]=rgb[0]*shade;pixels[p+1]=rgb[1]*shade;
+      pixels[p+2]=rgb[2]*shade;pixels[p+3]=255;
+    }
+    this.ctx.putImageData(image,0,0);this.texture.needsUpdate=true;
     this.atmosphere.material.opacity=world.tick<120?.02:.12;
     this.cloudLayer.material.opacity=world.tick<120?0:.035;
   }
