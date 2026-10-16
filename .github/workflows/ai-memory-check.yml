@@ -1,0 +1,24 @@
+name: Validate AI Memory
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.ai-memory/**'
+      - 'AGENTS.md'
+      - 'scripts/check-ai-memory.mjs'
+      - '.github/workflows/ai-memory-check.yml'
+  pull_request:
+    paths:
+      - '.ai-memory/**'
+      - 'AGENTS.md'
+      - 'scripts/check-ai-memory.mjs'
+      - '.github/workflows/ai-memory-check.yml'
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node scripts/check-ai-memory.mjs

@@ -1,0 +1,30 @@
+version: 1
+scope: project
+repository: tihloh/earth-evo
+active_branch: main
+visibility: public
+memory_directory: .ai-memory/
+general_memory_repository: tihloh/ai-memory
+memory_sync:
+  enabled: true
+  scope: development_project_threads_only
+  mode: best_effort_checkpoints
+  automatic_background_sync: false
+  general_writes_only_for_cross_project_knowledge: true
+memory_storage:
+  encoding: utf-8
+  index_max_bytes: 4096
+  chunk_rollover_bytes: 6144
+  chunk_max_bytes: 8192
+  chunk_path_pattern: chunks/memory-NNNN.md
+  retrieval: index_first_selective
+agents:
+  - id: chatgpt
+    memory: agents/chatgpt/MEMORY.md
+permissions:
+  read_other_agent_memory: authorized_on_demand
+  write_own_agent_memory: allowed
+  write_other_agent_memory: explicit_scoped_authorization_only
+  write_shared_memory: authorized_review_only
+  sensitive_credentials: forbidden
+note: "Collaboration policy; GitHub does not enforce per-folder agent access."

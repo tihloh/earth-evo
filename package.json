@@ -6,6 +6,7 @@
   "description": "3D planetary evolution and emergent civilization sandbox",
   "scripts": {
     "dev": "python -m http.server 8000",
-    "test": "node --test"
+    "test": "node --test",
+    "check:memory": "node scripts/check-ai-memory.mjs"
   }
 }
