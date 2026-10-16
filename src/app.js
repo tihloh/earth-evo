@@ -1,11 +1,110 @@
 import {World,W,H,END,ERAS,eraAt,dateLabel} from "./simulation.js";
 import {PlanetView} from "./renderer.js";
+import {SurfaceWorld} from "./surface-world.js";
+import {SurfaceView} from "./surface-view.js";
+import * as THREE from "three";
 
 const $=id=>document.getElementById(id);
 let world=new World(42);
 const view=new PlanetView($("globe"),$("globeViewport"));
 let playing=false,speed=12,accumulator=0,lastFrame=performance.now();
 let pendingSeek=null,seekFrame=false,rendering=false;
+let localActive=false,localView=null,localWorld=null,localEra=-1,localSeed=-1;
+let focus={lat:5,lon:10},inspectedId=null,lastLocalUi=0;
+function createSurface(force=false){
+  if(!localActive)return;
+  const era=eraAt(world.tick).t;
+  if(force||!localWorld||era!==localEra||localSeed!==world.seed){
+    localEra=era;localSeed=world.seed;
+    localWorld=new SurfaceWorld(world.seed,world.tick,focus.lat,focus.lon);
+    inspectedId=null;
+    if(localView)localView.setWorld(localWorld);
+  }
+  updateLocalUi(true);
+}
+function enterSurface(){
+  if(localActive)return;
+  setPlaying(false);localActive=true;
+  $("globeViewport").hidden=true;
+  $("surfaceViewport").hidden=false;
+  $("localPanel").hidden=false;
+  createSurface(true);
+  if(!localView)localView=new SurfaceView($("surface"),$("surfaceViewport"),localWorld,{
+    onSelect:showInspection,
+    onExit:leaveSurface,
+    onAction:()=>updateLocalUi(true)
+  });
+  localView.visible=true;
+  $("localLabel").textContent="Surface region · "+Math.abs(focus.lat).toFixed(1)+"°"+
+    (focus.lat>=0?" N":" S")+" · "+Math.abs(focus.lon).toFixed(1)+"°"+(focus.lon>=0?" E":" W");
+  $("enterSurface").textContent="⌕ Explore surface";
+  updateLocalUi(true);
+}
+function leaveSurface(){
+  if(!localActive)return;
+  localActive=false;
+  $("surfaceViewport").hidden=true;$("globeViewport").hidden=false;$("localPanel").hidden=true;
+  if(localView)localView.visible=false;
+  view.camera.position.set(0,1.2,7.9);
+  view.controls.target.set(0,0,0);view.controls.update();view.resize();
+}
+function showInspection(agent){
+  inspectedId=agent?.id??null;
+  updateLocalUi(true);
+}
+function updateLocalUi(force=false){
+  if(!localActive||!localWorld||(!force&&performance.now()-lastLocalUi<450))return;
+  lastLocalUi=performance.now();
+  const counts=localWorld.counts;
+  $("localHumans").textContent=counts.human;$("localGrazers").textContent=counts.grazer;
+  $("localPredators").textContent=counts.predator;$("localBirds").textContent=counts.bird;
+  $("localBuildings").textContent=localWorld.structures.length;
+  let agent=localWorld.agents.find(a=>a.id===inspectedId);
+  if(inspectedId!==null&&!agent)agent=localWorld.structures.find(a=>a.id===inspectedId);
+  const out=$("creatureInspector");
+  if(agent){
+    const htmlSafe=str=>String(str).replace(/[&<>"']/g,char=>
+      ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[char]));
+    const type=agent.type==="hut"?"Shelter":agent.type;
+    const details=agent.type==="hut"?"Built structure":
+      "Goal: <span class='goal'>"+htmlSafe(agent.goal)+"</span>"+
+      "<br>Hunger: "+Math.round(agent.hunger)+" / 100"+
+      " · Energy: "+Math.round(agent.energy)+" / 100"+
+      "<br>Health: "+Math.round(agent.health)+" / 100"+
+      (agent.type==="human"?"<br>Collected wood: "+agent.carried.toFixed(1):"");
+    out.innerHTML="<strong>"+htmlSafe(type)+" #"+agent.id+"</strong><br>"+details;
+  }else out.textContent="Click a person, animal, bird or shelter in Inspect mode to observe its behavior.";
+  const list=$("localEvents");list.replaceChildren();
+  for(const event of localWorld.events.slice(0,5)){
+    const li=document.createElement("li"),s=document.createElement("small"),msg=document.createElement("span");
+    s.textContent="Regional time "+event.time.toFixed(0)+"s";msg.textContent=event.message;
+    li.append(s,msg);list.append(li);
+  }
+}
+$("enterSurface").addEventListener("click",enterSurface);
+$("leaveSurface").addEventListener("click",leaveSurface);
+let pointStart=null;
+$("globe").addEventListener("pointerdown",e=>pointStart={x:e.clientX,y:e.clientY});
+$("globe").addEventListener("pointerup",e=>{
+  if(!pointStart||Math.hypot(pointStart.x-e.clientX,pointStart.y-e.clientY)>7)return;
+  const rect=$("globe").getBoundingClientRect();
+  const mouse=new THREE.Vector2((e.clientX-rect.left)/rect.width*2-1,
+    -(e.clientY-rect.top)/rect.height*2+1);
+  const ray=new THREE.Raycaster();ray.setFromCamera(mouse,view.camera);
+  const hit=ray.intersectObject(view.earth);
+  if(hit.length){
+    const p=view.root.worldToLocal(hit[0].point.clone()).normalize();
+    focus={lat:Math.asin(p.y)*180/Math.PI,lon:Math.atan2(p.z,-p.x)*180/Math.PI};
+    $("globeSelection").textContent="Area selected: "+focus.lat.toFixed(1)+"°, "+focus.lon.toFixed(1)+"° · Zoom in to explore";
+  }
+});
+document.querySelectorAll("[data-god-action]").forEach(button=>button.addEventListener("click",()=>{
+  if(localView)localView.setAction(button.dataset.godAction);
+  document.querySelectorAll("[data-god-action]").forEach(b=>b.classList.toggle("selected",b===button));
+  if(button.dataset.godAction!=="inspect")$("creatureInspector").textContent=
+    "Power selected: "+button.textContent.trim()+". Click the landscape to apply.";
+  else updateLocalUi(true);
+}));
 const fmt=num=>num>=1e6?(num/1e6).toFixed(2)+"M":num>=1e3?(num/1000).toFixed(1)+"K":num.toFixed(0);
 function setPlaying(value){
   playing=Boolean(value)&&world.tick<END;
@@ -31,6 +130,7 @@ function renderTimeline(){
 }
 function refresh(){
   view.update(world,true);
+  if(localActive)createSurface();
   renderTimeline();
   $("temperature").textContent=Math.round(world.temperature)+" °C";
   $("ocean").textContent=Math.round(world.ocean*100)+"%";
@@ -120,6 +220,8 @@ $("loadFile").addEventListener("change",async event=>{
 });
 function animate(now){
   const dt=Math.min(.12,(now-lastFrame)/1000);lastFrame=now;
+  if(!localActive&&view.camera.position.distanceTo(view.controls.target)<3.65)enterSurface();
+  if(localActive)updateLocalUi();
   if(playing){
     accumulator+=dt*speed;
     const n=Math.floor(accumulator);
