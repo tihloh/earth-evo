@@ -63,7 +63,7 @@ export function sampleGeography(lat,lon,seed=42,seaShift=0){
   const moisture=clamp(.70-.40*latitude/90+.19*dry,.08,1);
   const temperature=27-41*latitude/90-9*Math.max(0,above);
   // One canonical elevation-to-height conversion for planet and region.
-  const height=above*17.5;
+  const height=above*28;
   const lakeEligible=moisture>.68&&Math.sin(lat*.29+lon*.37+seed*.03)>.74;
   const lake=above>0&&above<.048&&lakeEligible;
   const land=above>0&&!lake;
@@ -88,6 +88,30 @@ export function sampleGeography(lat,lon,seed=42,seaShift=0){
 export function sampleLocal(x,z,originLat,originLon,seed=42,seaShift=0){
   const p=localToGeo(x,z,originLat,originLon);
   return sampleGeography(p.lat,p.lon,seed,seaShift);
+}
+// Deterministic scout locations. Searches are based on the SAME geography, not
+// arbitrary hand-placed landmarks. No claim that coordinates represent real Earth.
+export function findScenicLocation(kind,seed=42,seaShift=0){
+  const kinds=["mountain","coast","lake","river","island","forest","desert"];
+  if(!kinds.includes(kind))throw Error("Unknown landscape type");
+  let best=null,bestScore=-Infinity;
+  for(let lat=-72;lat<=72;lat+=6)for(let lon=-174;lon<180;lon+=6){
+    const s=sampleGeography(lat,lon,seed,seaShift);
+    const around=[[1.5,0],[-1.5,0],[0,1.5],[0,-1.5]].map(([dx,dy])=>
+      sampleGeography(lat+dy,lon+dx,seed,seaShift));
+    const nWater=around.filter(p=>!p.land).length;
+    const relief=Math.max(...around.map(p=>p.height))-Math.min(...around.map(p=>p.height));
+    let score=-Infinity;
+    if(kind==="mountain"&&s.land)score=s.height+2.7*relief+(s.height>15?20:0);
+    if(kind==="coast"&&s.land&&nWater>0)score=10+relief+nWater*4;
+    if(kind==="lake"&&s.waterKind==="lake")score=40+relief;
+    if(kind==="river"&&s.river)score=40+relief+s.moisture*2;
+    if(kind==="island"&&s.land&&nWater>=2)score=20+nWater*10;
+    if(kind==="forest"&&s.land&&s.biome==="forest")score=10+s.moisture*20+relief;
+    if(kind==="desert"&&s.land&&s.biome==="dryland")score=10+(1-s.moisture)*20+relief;
+    if(score>bestScore){bestScore=score;best={lat,lon,kind,height:s.height,score}}
+  }
+  return best;
 }
 export function globeColor(sample,era=1540){
   const h=sample.height;
