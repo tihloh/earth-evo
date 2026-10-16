@@ -99,7 +99,7 @@ People now have individual low-poly heads, skin tones, hair, clothing, limbs, fa
 
 ## Controls
 
-- **General timeline scrollbar:** Drag the large bar at the bottom **both forward and backward** from 4.54 billion years ago through a hypothetical 2200 CE. **The simulation state** rewinds/restores, not only the displayed date.
+- **General timeline scrollbar:** Drag the compact bar at the bottom **both forward and backward** from 4.54 billion years ago through a hypothetical 2200 CE. **The simulation state** rewinds/restores, not only the displayed date.
 - **Milestone marks:** Click any marker to jump to an important period.
 - **Start / Future:** Jump to either end of the timeline.
 - **−1 / +1:** Step time forward or backward by one *simulation tick* (ticks represent different spans of actual geological time).
@@ -110,7 +110,7 @@ People now have individual low-poly heads, skin tones, hair, clothing, limbs, fa
 - **Detailed region:** Continue zooming to explore moving creatures, trees and buildings at ground level. Use the right-hand god tools to interact with life.
 - **Change the world:** Raise/lower global climate, change sea level, trigger volcanic eruptions or asteroid impacts.
 - **Seed / Reset:** Generate a reproducible alternative planet.
-- **Save / Load:** Download a JSON replay recipe and restore it later. Saves include the seed, time and intervention history. No backend account is needed.
+- **Save / Load:** Download a JSON save and restore it later. Saves contain the planet seed/time/interventions and, where compatible, active local agents, flora, shelters and bounded exploration snapshots. No account or backend is needed.
 
 ### Simulation layers
 
@@ -121,7 +121,7 @@ People now have individual low-poly heads, skin tones, hair, clothing, limbs, fa
 ### Honest limitations
 
 - First appearances of major biological guilds are *milestone-gated* based loosely on history. Life's real origin is scientifically unresolved. **Natural selection and speciation are approximated; complex anatomical evolution is not modeled.**
-- Individual creatures, dinosaurs, humans and buildings are **not rendered**. Planetary-scale abundance is shown by colored dots, and settlements by golden points.
+- The globe represents aggregate biological populations as colored dots; **individual low-poly humans, animals, birds, trees and huts are rendered in the local scene**. Rich anatomical changes, actual dinosaurs, lifelike behavior, and fully modeled urban infrastructure remain future work.
 - Populations and temperature/oxygen indicators are conceptual units, **not official paleoenvironmental or demographic statistics**.
 - Planet generation is procedural rather than a true reconstruction of historical continental drift.
 - Time is *nonlinear*: 1 tick near Earth's formation covers vastly more real years than 1 tick near the present.
