@@ -32,7 +32,7 @@ export class SurfaceView{
     sun.shadow.camera.left=-100;sun.shadow.camera.right=100;sun.shadow.camera.top=100;sun.shadow.camera.bottom=-100;
     sun.shadow.camera.far=230;this.scene.add(sun);
     this.worldRoot=new THREE.Group();this.scene.add(this.worldRoot);
-    this.characters=new Map();this.structures=new Map();this.instanced=[];
+    this.characters=new Map();this.structures=new Map();this.instanced=[];this.treeMeshes=[];this.treeCount=0;this.visible=true;this.weatherFlash=0;
     this.terrain=null;this.river=null;this.pointerDown=null;this.interactTargets=[];
     this.raycaster=new THREE.Raycaster();this.pointer=new THREE.Vector2();
     this.onDown=e=>this.pointerDown={x:e.clientX,y:e.clientY};
@@ -60,7 +60,7 @@ export class SurfaceView{
   rebuild(){
     for(const child of [...this.worldRoot.children])this.worldRoot.remove(child);
     for(const obj of this.instanced){obj.geometry.dispose();obj.material.dispose()}
-    this.instanced=[];this.characters.clear();this.structures.clear();
+    this.instanced=[];this.treeMeshes=[];this.characters.clear();this.structures.clear();
     this.buildTerrain();this.buildWater();this.buildTrees();this.buildProps();
     this.syncAgents();this.syncBuildings();
   }
@@ -122,7 +122,7 @@ export class SurfaceView{
     stem.instanceMatrix.needsUpdate=true;foliage.instanceMatrix.needsUpdate=true;
     stem.castShadow=true;foliage.castShadow=true;
     this.worldRoot.add(stem,foliage);
-    this.instanced.push(stem,foliage);
+    this.instanced.push(stem,foliage);this.treeMeshes=[stem,foliage];this.treeCount=alive.length;
   }
   buildProps(){
     // A few cliff boulders make mountain slopes readable when zoomed in.
@@ -222,13 +222,16 @@ export class SurfaceView{
       const ground=this.raycaster.intersectObject(this.terrain);
       if(ground.length){
         const p=ground[0].point;this.world.intervene(this.action,p.x,p.z);
-        this.buildTreesAfterChanges();this.syncAgents();this.syncBuildings();this.onAction(this.action,p);
+        this.buildTreesAfterChanges();this.syncAgents();this.syncBuildings();this.weatherFlash=this.action==='lightning'?.42:0;this.onAction(this.action,p);
       }
     }
   }
   buildTreesAfterChanges(){
-    for(const old of this.instanced.slice(0,2)){this.worldRoot.remove(old);old.geometry.dispose();old.material.dispose()}
-    this.instanced.splice(0,2);this.buildTrees();
+    for(const old of this.treeMeshes){
+      this.worldRoot.remove(old);old.geometry.dispose();old.material.dispose();
+    }
+    this.instanced=this.instanced.filter(mesh=>!this.treeMeshes.includes(mesh));
+    this.treeMeshes=[];this.buildTrees();
   }
   resize(){
     const w=this.viewport.clientWidth,h=this.viewport.clientHeight;
@@ -238,9 +241,17 @@ export class SurfaceView{
   frame(now){
     if(!this.running)return;
     const dt=Math.min(.07,(now-this.previous)/1000);this.previous=now;
+    if(!this.visible){requestAnimationFrame(this.frame);return}
     this.world.update(dt);
     if(Math.floor(now/500)!==Math.floor((now-dt*1000)/500))this.syncAgents();
     if(Math.floor(now/1200)!==Math.floor((now-dt*1000)/1200))this.syncBuildings();
+    if(Math.floor(now/5000)!==Math.floor((now-dt*1000)/5000)){
+      const alive=this.world.trees.filter(t=>t.alive).length;
+      if(alive!==this.treeCount)this.buildTreesAfterChanges();
+    }
+    if(this.weatherFlash>0){this.weatherFlash=Math.max(0,this.weatherFlash-dt);
+      this.scene.background.setHex(this.weatherFlash>.18?0xdfefff:0xa1c7e4)}
+    else this.scene.background.setHex(this.world.rain>0?0x819bab:0xa1c7e4);
     for(const a of this.world.agents){
       if(!a.active)continue;
       const obj=this.characters.get(a.id);if(!obj)continue;
