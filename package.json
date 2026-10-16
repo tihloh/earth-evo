@@ -1,6 +1,6 @@
 {
   "name": "earth-evo",
-  "version": "0.6.0",
+  "version": "0.8.0",
   "private": true,
   "type": "module",
   "description": "3D planetary evolution and emergent civilization sandbox",
