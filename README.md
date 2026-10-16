@@ -3,7 +3,7 @@
 
 **Earth Evo** is an interactive simulation prototype that follows a fictionalized, science-inspired Earth from planetary formation (~4.54 billion years ago), through the emergence and diversification of life, to human settlements and hypothetical futures.
 
-**Current status: v0.6 — era-aware wildlife and vegetation, distinct low-poly species, configurable weather/fog, physical feature cues and lighter distant terrain.** It includes a navigable planetary globe, a close-up procedural regional world with autonomous creatures, and a simplified worldwide ecosystem/civilization simulation. It is **not** a physically accurate 4.54-billion-year reconstruction, a full Darwinian genetics simulator, or a Civilization-scale strategy game.
+**Current status: v0.7 — recognizable species anatomy, sculpted mountain relief, displaced 3D globe, landscape explorer and detailed/instanced animal LOD.** It includes a navigable planetary globe, a close-up procedural regional world with autonomous creatures, and a simplified worldwide ecosystem/civilization simulation. It is **not** a physically accurate 4.54-billion-year reconstruction, a full Darwinian genetics simulator, or a Civilization-scale strategy game.
 
 ## Run it
 
@@ -76,6 +76,48 @@ Set the regional simulation to **1×, 4× or 10×**, or pause local life while k
 - The camera can pan far beyond the original 180-unit square. The world streams as you move; there is no single fixed map edge within the supported coordinate range.
 - Exploration state and nearby active ecology are included in Save/Load; distant chunk snapshots have a bounded cache (96 chunks) for browser memory safety. Evicted areas can be reconstructed procedurally, but older player modifications there may not be preserved.
 - This is lightweight **distance-based rendering**, not game fog-of-war. Distant wildlife and vegetation are streamed/cached; the landscape stays visually readable. This is not yet an infinite physically simulated planet or persistent disk-backed world.
+
+## Species anatomy and mountain explorer — v0.7
+
+The first creature renderer reused one nearly identical quadruped skull across many animals.
+This is replaced with **separate body/face builders** in `src/animal-anatomy.js` and
+`src/animal-families.js`. Different species now use appropriate recognizable
+features, such as wolf/fox muzzles and pointy ears, big-cat snouts and whiskers,
+bear heads, deer antlers, cow/bison horns, horse/zebra long faces, sheep wool,
+giraffe elongated necks, camels' humps, rhinoceros horns, hippopotamus nostrils,
+elephant trunks and tusks, gorilla/primate faces, rabbit ears, crocodile
+jaws/teeth, tortoise shells, and snake bodies. Marine creatures, insects,
+birds and dinosaurs also have more specialized geometry.
+
+There are now **more than 60 animal catalog entries** across simulated history
+and climate categories, not all active in one era or biome. In the Surface
+**Actions HUD**, choose **Summon a specific animal → Place**, then click a
+suitable location. Use **Inspect → View face & anatomy** to approach its
+model and follow its movement. Impossible era/habitat combinations remain
+blocked. Only the nearest 70 wildlife models draw in full detail; more
+distant individuals are lightweight GPU-instanced representations.
+
+### Visit a real terrain feature within the procedural planet
+
+Under **Explore terrain shapes** choose a destination and press **Explore**:
+
+- **Mountain ranges & valleys:** Jump to a seeded high-relief area with raised
+  mountain ridges and variable slopes, not just a mountain label.
+- **Coasts, lakes, rivers and islands:** Jump to matching water/land
+  classifications, with a detailed shoreline, connected water surface and
+  local freshwater mesh where relevant.
+- **Forests or deserts:** Visit a fitting biome.
+
+The mountains are now sampled using the same coherent relief function in
+planet and local views. The globe's sphere geometry has real height
+displacement for high terrain. Local relief is deliberately exaggerated to
+improve visibility at gameplay scale. **These locations are synthetic Earth
+coordinates**, not accurate real-world mountain ranges or watersheds.
+
+Ocean, sea, lagoon and lake water have distinct visual treatments. Stream
+surfaces sample the same river data used on the globe. The landscape
+catalogue's names remain approximate; full continental tectonics, caves,
+shoreline erosion and hydrodynamics are still not implemented.
 
 ## Weather, landforms and epoch-appropriate wildlife
 
@@ -154,7 +196,9 @@ src/
   landform-view.js        Lightweight local landform landmark meshes
   surface-world.js       Geolocated creature AI and local ecology
   surface-view.js        3D terrain, creature instances, buildings and camera
-  creature-models.js     Articulated, procedural humans, quadrupeds and birds
+  creature-models.js     Animated humans, dinosaurs, flying and marine wildlife
+  animal-anatomy.js      Distinct terrestrial animal skulls, faces and body geometry
+  animal-families.js     Testable species-to-anatomy catalogue
   vegetation-view.js     Instanced trees and biome ground cover
   camera-controls.js     Shared cursor zoom, pan and 0/2/5% glide tuning
   styles.css             Responsive styles for planet, local explorer and timeline
@@ -178,10 +222,12 @@ docs/
 - [x] Climate/impact intervention controls, save/load, automated tests
 - [ ] Biological agents with richer genetics, organisms, anatomies and life cycles
 - [ ] Real-world modern and prehistoric continents/DEM datasets, plate tectonics and higher-fidelity climate
-- [x] Procedural local 3D terrain, river, islands, varied forests and detailed animated low-poly wildlife
+- [x] Procedural local 3D terrain, sculpted mountain ridges, waterways, varied forests and articulated wildlife
 - [x] Zoom-to-surface navigation, inspector, god powers and creature following
 - [x] Cursor-focused precision zoom, optional 0–5% glide, panning and compact collapsible HUDs
-- [ ] More detailed 3D organisms, species-specific environments, cities and infrastructure
+- [x] Distinct low-poly faces and bodies for representative animal families, including underwater species
+- [x] Seeded mountain/coast/water landscape exploration and displaced planet sphere geometry
+- [ ] Scientifically reviewed species-specific anatomy, detailed real-world ecosystems, cities and infrastructure
 - [ ] Detailed human civilizations, trade, conflict, governments and technologies
 - [ ] Space-age civilizations and long-term multi-planet simulations
 - [ ] Scalable worker-based simulation with spatial LOD and persistent databases
