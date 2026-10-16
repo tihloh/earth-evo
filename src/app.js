@@ -56,7 +56,6 @@ function refresh(){
     const li=document.createElement("li"),date=document.createElement("small"),label=document.createElement("span");
     date.textContent=dateLabel(ev.tick);label.textContent=ev.message;li.append(date,label);eventList.append(li);
   }
-  $("noData").hidden=world.tick!==0;
 }
 function stepTo(tick){
   setPlaying(false);go(Math.max(0,Math.min(END,tick)));
