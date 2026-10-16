@@ -1,6 +1,7 @@
 import {World,W,H,END,ERAS,eraAt,dateLabel} from "./simulation.js";
 import {PlanetView} from "./renderer.js";
 import {SurfaceWorld} from "./surface-world.js";
+import {ecologyStageAt} from "./era-ecology.js";
 import {SurfaceView} from "./surface-view.js";
 import * as THREE from "three";
 
@@ -41,7 +42,7 @@ $("cameraGlide").addEventListener("change",e=>{
 
 function createSurface(force=false){
   if(!localActive)return;
-  const era=eraAt(world.tick).t;
+  const era=eraAt(world.tick).t+"/"+ecologyStageAt(world.tick);
   if(force||!localWorld||era!==localEra||localSeed!==world.seed||
     localWorld.seaShift!==world.seaShift){
     localEra=era;localSeed=world.seed;
@@ -280,7 +281,7 @@ document.querySelectorAll("[data-intervention]").forEach(button=>button.addEvent
 }));
 $("save").addEventListener("click",()=>{
   const saved={version:2,planet:JSON.parse(world.serialize()),
-    surface:localWorld&&localSeed===world.seed&&localEra===eraAt(world.tick).t?
+    surface:localWorld&&localSeed===world.seed&&localEra===eraAt(world.tick).t+"/"+ecologyStageAt(world.tick)?
       localWorld.toJSON():null,
     focus};
   const blob=new Blob([JSON.stringify(saved)],{type:"application/json"});
@@ -299,7 +300,7 @@ $("loadFile").addEventListener("change",async event=>{
       focus={lat:Number.isFinite(data.focus?.lat)&&Math.abs(data.focus.lat)<=90?data.focus.lat:5,
         lon:Number.isFinite(data.focus?.lon)&&Math.abs(data.focus.lon)<=180?data.focus.lon:10};
       localWorld=data.surface?SurfaceWorld.fromJSON(data.surface):null;
-      localEra=localWorld?eraAt(world.tick).t:-1;
+      localEra=localWorld?eraAt(world.tick).t+"/"+ecologyStageAt(world.tick):-1;
       localSeed=localWorld?world.seed:-1;
       if(localActive&&localView&&localWorld)localView.setWorld(localWorld);
     }else{
