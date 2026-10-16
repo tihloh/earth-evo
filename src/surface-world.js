@@ -172,6 +172,13 @@ export class SurfaceWorld {
     })[goal]||"Exploring the environment";
   }
   randomDestination(a,goal="wandering"){
+    if(a.type==="marine"){
+      for(let i=0;i<28;i++){
+        const x=a.x+this.rng.between(-24,24),z=a.z+this.rng.between(-24,24);
+        if(!this.isLand(x,z)){this.destination(a,{x,z},goal);return}
+      }
+      this.destination(a,{x:a.x,z:a.z},goal);return;
+    }
     this.destination(a,this.location({x:a.x,z:a.z},24),goal);
   }
   freshwater(a){
@@ -330,6 +337,9 @@ export class SurfaceWorld {
       if(a.type==="human")a.food+=2;
       this.log((a.type==="human"?"Human":"Predator")+" #"+a.id+" hunted grazer #"+target.id);return;
     }
+    if(a.type==="marine"&&a.goal==="feeding"){
+      a.hunger=Math.max(0,a.hunger-32);a.energy=Math.min(100,a.energy+7);return;
+    }
     if(a.goal==="fishing"&&target?.type==="marine"&&target.active&&dist(a,target)<4){
       target.active=false;
       a.hunger=Math.max(0,a.hunger-40);
@@ -351,6 +361,7 @@ export class SurfaceWorld {
     if((a.goal==="foraging"||a.goal==="collecting food")&&target?.fruit>0){
       const n=Math.min(target.fruit,a.type==="human"?2:1.5);target.fruit-=n;
       a.memory.lastFood=target.id;
+      a.thirst=Math.max(0,a.thirst-10);
       a.skill.survival=CLAMP(a.skill.survival+.025,0,10);
       if(a.type==="human"){a.food+=n;a.goal="eating";a.hunger=Math.max(0,a.hunger-26)}
       else a.hunger=Math.max(0,a.hunger-48);
@@ -412,6 +423,8 @@ export class SurfaceWorld {
       a.age+=dt;
       a.hunger=CLAMP(a.hunger+dt*(a.type==="bird"?1.1:.7),0,110);
       a.thirst=CLAMP((a.thirst||0)+dt*(a.type==="marine"?.05:.55),0,110);
+      if(this.weather==="rain"||this.rain>0)
+        a.thirst=CLAMP(a.thirst-dt*.35,0,110);
       a.energy=CLAMP(a.energy+dt*.6,0,100);
       if(a.hunger>97)a.health-=dt*3;
       if(a.thirst>97)a.health-=dt*4;
@@ -440,7 +453,13 @@ export class SurfaceWorld {
       this.lastBirth=this.time;
       const prosperous=this.agents.filter(a=>a.active&&a.hunger<50);
       if(prosperous.length>8&&this.rng.next()<.7){
-        const parent=this.rng.pick(prosperous),p=this.location(parent,5);
+        const parent=this.rng.pick(prosperous);
+        let p=this.location(parent,5);
+        if(parent.type==="marine"){
+          p={x:parent.x+this.rng.between(-2,2),
+             z:parent.z+this.rng.between(-2,2)};
+          if(this.isLand(p.x,p.z))p={x:parent.x,z:parent.z};
+        }
         const baby=this.spawn(parent.type,p.x,p.z,parent.species);
         if(baby){
           baby.size=parent.size*.57;
@@ -472,9 +491,10 @@ export class SurfaceWorld {
       for(const a of near){a.health-=90;if(a.health<=0)a.active=false}
       for(const tree of this.trees)if(tree.alive&&dist(tree,{x,z})<5)tree.alive=false;
       this.log("Lightning struck; "+near.length+" creatures were affected");
-    }else if(["human","grazer","predator","bird"].includes(kind)){
-      if(this.spawn(kind,x,z))this.log("God created a "+kind);
-      else this.log("This creature cannot exist in this era or location");
+    }else if(["human","grazer","predator","bird","marine"].includes(kind)){
+      const creature=this.spawn(kind,x,z);
+      if(creature)this.log("God introduced "+creature.species+" to this habitat");
+      else this.log("Species unavailable in this era or location");
     }else if(kind==="food"){
       for(const tree of this.trees)if(tree.alive&&dist(tree,{x,z})<16)tree.fruit=6;
       this.log("Food was replenished");
