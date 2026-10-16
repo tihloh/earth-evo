@@ -20,6 +20,7 @@ test("precise mode applies 98 percent of an input on the first damped update",()
  assert.equal(c.zoomToCursor,true);
  assert.equal(c.enablePan,true);
  assert.equal(c.autoRotate,false);
+ assert.deepEqual(c.mouseButtons,{LEFT:2,MIDDLE:1,RIGHT:0});
 });
 test("no glide mode disables inertia completely",()=>{
  const c=configurePrecisionCamera(fakeControls(),"surface",0);
