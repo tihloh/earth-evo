@@ -10,6 +10,7 @@ import {SPECIES} from "./era-ecology.js";
 import {classifyPhysicalFeature} from "./physical-features.js";
 import {createLandformLandmarks} from "./landform-view.js";
 import {returnPlanetAt} from "./zoom-transition.js";
+import {tileSegments} from "./zoom-continuum.js";
 import {buildHorizonTerrain} from "./horizon-terrain.js";
 
 const color=(hex)=>new THREE.MeshStandardMaterial({color:hex,roughness:1,flatShading:true});
@@ -186,8 +187,8 @@ export class SurfaceView{
     this.syncAgents();this.syncBuildings();
   }
   buildTerrain(){this.updateTiles(true)}
-  makeTerrainTile(cx,cz,lod=0){
-    const size=STREAM_CHUNK_SIZE,segments=lod===0?32:lod===1?16:4;
+  makeTerrainTile(cx,cz,segments=32){
+    const size=STREAM_CHUNK_SIZE;
     const geometry=new THREE.PlaneGeometry(size,size,segments,segments);
     geometry.rotateX(-Math.PI/2);
     const positions=geometry.attributes.position,colors=[];
@@ -223,15 +224,15 @@ export class SurfaceView{
     geometry.setAttribute("color",new THREE.Float32BufferAttribute(colors,3));
     geometry.computeVertexNormals();
     const mesh=new THREE.Mesh(geometry,this.terrainMaterial);
-    mesh.position.set(centerX,0,centerZ);mesh.receiveShadow=lod===0;
+    mesh.position.set(centerX,0,centerZ);mesh.receiveShadow=segments>=32;
     mesh.userData.tileKey=cx+","+cz;
     mesh.userData.sharedMaterial=true;
     return mesh;
   }
-  makeFreshwaterTile(cx,cz,lod=0){
+  makeFreshwaterTile(cx,cz,segments=32){
     // Low-overdraw local mesh for rivers, streams, wetlands and inland lakes.
     // Ocean water remains a single flat, cheap surface under each terrain tile.
-    const size=STREAM_CHUNK_SIZE,n=lod===0?36:lod===1?18:8;
+    const size=STREAM_CHUNK_SIZE,n=segments>=32?32:segments>=16?16:8;
     const left=cx*size,top=cz*size,positions=[],indices=[];
     function addTriangle(points){
       const base=positions.length/3;
@@ -277,7 +278,9 @@ export class SurfaceView{
     const size=STREAM_CHUNK_SIZE;
     const cx=Math.floor(this.controls.target.x/size);
     const cz=Math.floor(this.controls.target.z/size);
-    const state=cx+","+cz+"/"+this.renderRadius;
+    const eye=this.camera.position.distanceTo(this.controls.target);
+    const zoomBand=eye<38?"near":eye<100?"mid":"far";
+    const state=cx+","+cz+"/"+this.renderRadius+"/"+zoomBand;
     if(!force&&state===this.chunkCenter)return;
     this.chunkCenter=state;
     this.updateHorizon(cx,cz);
@@ -286,12 +289,12 @@ export class SurfaceView{
     for(let dx=-this.renderRadius;dx<=this.renderRadius;dx++)
       for(let dz=-this.renderRadius;dz<=this.renderRadius;dz++){
         const xx=cx+dx,zz=cz+dz,key=xx+","+zz;
-        const d=Math.max(Math.abs(dx),Math.abs(dz));
-        const lod=d<=1?0:d<=2?1:2;
-        desired.set(key,{xx,zz,lod});
+        const distance=Math.hypot(dx*size,dz*size);
+        const segments=tileSegments(distance,eye);
+        desired.set(key,{xx,zz,segments});
       }
     for(const [key,mesh]of this.terrainChunks){
-      if(desired.has(key)&&mesh.userData.lod===desired.get(key).lod)continue;
+      if(desired.has(key)&&mesh.userData.segments===desired.get(key).segments)continue;
       this.worldRoot.remove(mesh);mesh.geometry.dispose();this.terrainChunks.delete(key);
       const landmarks=this.landmarkChunks.get(key);
       if(landmarks){
@@ -304,10 +307,10 @@ export class SurfaceView{
     }
     for(const [key,t]of desired){
       if(this.terrainChunks.has(key))continue;
-      const tile=this.makeTerrainTile(t.xx,t.zz,t.lod);
-      tile.userData.lod=t.lod;
+      const tile=this.makeTerrainTile(t.xx,t.zz,t.segments);
+      tile.userData.segments=t.segments;
       this.terrainChunks.set(key,tile);this.worldRoot.add(tile);
-      if(t.lod===0&&this.world.era>=120){
+      if(t.segments>=32&&this.world.era>=120){
         const landmarks=createLandformLandmarks(this.world,t.xx,t.zz,size);
         if(landmarks.children.length){
           this.landmarkChunks.set(key,landmarks);this.worldRoot.add(landmarks);
@@ -321,7 +324,7 @@ export class SurfaceView{
         ocean.rotation.x=-Math.PI/2;
         ocean.position.set((t.xx+.5)*size,0,(t.zz+.5)*size);
         ocean.userData.sharedMaterial=true;
-        const fresh=this.makeFreshwaterTile(t.xx,t.zz,t.lod);
+        const fresh=this.makeFreshwaterTile(t.xx,t.zz,t.segments);
         const pieces=fresh?[ocean,fresh]:[ocean];
         for(const water of pieces)this.worldRoot.add(water);
         this.waterChunks.set(key,pieces);
