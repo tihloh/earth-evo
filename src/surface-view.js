@@ -16,7 +16,9 @@ const m={trunk:color(0x65452e),leaf:color(0x4c9860),leaf2:color(0x60ac64),
   grazer:color(0xc3ae7c),bird:color(0xe4e3c8),roof:color(0x9a6350),
   hut:color(0xd2b98c),eye:new THREE.MeshBasicMaterial({color:0x1b2128}),
   water:new THREE.MeshStandardMaterial({color:0x2679ac,transparent:true,opacity:.77,roughness:.39,side:THREE.DoubleSide}),
-  river:new THREE.MeshStandardMaterial({color:0x369ac7,transparent:true,opacity:.84,roughness:.4,side:THREE.DoubleSide})};
+  river:new THREE.MeshStandardMaterial({color:0x369ac7,transparent:true,opacity:.85,roughness:.32,side:THREE.DoubleSide}),
+  lagoon:new THREE.MeshStandardMaterial({color:0x48c3b0,transparent:true,opacity:.73,roughness:.32,side:THREE.DoubleSide}),
+  deep:new THREE.MeshStandardMaterial({color:0x225d92,transparent:true,opacity:.80,roughness:.4,side:THREE.DoubleSide})};
 const globe=Math.PI*2;
 export class SurfaceView{
   constructor(canvas,viewport,world,{onSelect=()=>{},onExit=()=>{},onAction=()=>{}}={}){
@@ -209,7 +211,7 @@ export class SurfaceView{
   makeFreshwaterTile(cx,cz,lod=0){
     // Low-overdraw local mesh for rivers, streams, wetlands and inland lakes.
     // Ocean water remains a single flat, cheap surface under each terrain tile.
-    const size=STREAM_CHUNK_SIZE,n=lod===0?24:lod===1?10:5;
+    const size=STREAM_CHUNK_SIZE,n=lod===0?36:lod===1?18:8;
     const left=cx*size,top=cz*size,positions=[],indices=[];
     function addTriangle(points){
       const base=positions.length/3;
@@ -222,7 +224,8 @@ export class SurfaceView{
       if(!sample.river&&sample.waterKind!=="lake")continue;
       const height=(xx,zz)=>{
         const s=this.world.sample(xx,zz);
-        return (sample.waterKind==="lake"?Math.max(0,s.height):s.height)+.08;
+        // Lake water is level across its basin; stream water follows river grade.
+        return sample.waterKind==="lake"?.048*28+.06:s.height+.12;
       };
       const p0={x,y:height(x,z),z},p1={x:x+step,y:height(x+step,z),z},
         p2={x,y:height(x,z+step),z:z+step},
@@ -277,7 +280,10 @@ export class SurfaceView{
         }
       }
       if(this.world.era>=120){
-        const ocean=new THREE.Mesh(new THREE.PlaneGeometry(size,size),m.water);
+        const center=this.world.sample((t.xx+.5)*size,(t.zz+.5)*size);
+        const waterMaterial=center.waterKind==="lagoon"?m.lagoon:
+          center.waterKind==="ocean"?m.deep:m.water;
+        const ocean=new THREE.Mesh(new THREE.PlaneGeometry(size,size),waterMaterial);
         ocean.rotation.x=-Math.PI/2;
         ocean.position.set((t.xx+.5)*size,0,(t.zz+.5)*size);
         ocean.userData.sharedMaterial=true;
