@@ -20,7 +20,8 @@ export class SurfaceView{
     this.canvas=canvas;this.viewport=viewport;this.world=world;
     this.onSelect=onSelect;this.onExit=onExit;this.onAction=onAction;this.action="inspect";
     this.scene=new THREE.Scene();this.scene.background=new THREE.Color(world.era<120?0x684c43:0xa1c7e4);
-    this.scene.fog=new THREE.FogExp2(0xa1c7e4,.017);
+    this.fogMode="weather";this.weatherChoice="auto";
+    this.scene.fog=new THREE.FogExp2(0xa1c7e4,.006);
     this.camera=new THREE.PerspectiveCamera(55,1,.1,380);
     this.camera.position.set(47,64,85);
     this.renderer=new THREE.WebGLRenderer({canvas,antialias:true});
@@ -43,6 +44,8 @@ export class SurfaceView{
     this.terrainChunks=new Map();this.terrainMeshes=[];
     this.waterChunks=new Map();this.renderRadius=3;
     this.fogDetailRadius=1;this.lastTileUpdate=0;this.chunkCenter="";
+    this.skyColor=new THREE.Color(0xa1c7e4);this.precipitation=null;
+    this.setupPrecipitation();
     this.terrainMaterial=new THREE.MeshStandardMaterial({
       vertexColors:true,roughness:.96,flatShading:false,side:THREE.DoubleSide
     });
@@ -65,6 +68,64 @@ export class SurfaceView{
   }
   setGlide(value){setCameraGlide(this.controls,value)}
   setAction(action){this.action=action}
+  setFogMode(mode){
+    if(!["none","atmospheric","weather"].includes(mode))return;
+    this.fogMode=mode;this.updateAtmosphere();
+  }
+  setWeatherChoice(mode){
+    if(!["auto","clear","cloudy","rain","snow","windy","dust"].includes(mode))return;
+    this.weatherChoice=mode;this.updateAtmosphere();
+  }
+  effectiveWeather(){
+    return this.weatherChoice==="auto"?(this.world.rain>0?"rain":this.world.weather):this.weatherChoice;
+  }
+  setupPrecipitation(){
+    const n=350,positions=new Float32Array(n*3);
+    for(let i=0;i<n;i++){
+      positions[i*3]=(i*73.91%1-.5)*100;
+      positions[i*3+1]=(i*47.36%1)*55;
+      positions[i*3+2]=(i*19.23%1-.5)*100;
+    }
+    const geometry=new THREE.BufferGeometry();
+    geometry.setAttribute("position",new THREE.BufferAttribute(positions,3));
+    const material=new THREE.PointsMaterial({color:0xb8dceb,size:.28,
+      transparent:true,opacity:.62,depthWrite:false});
+    this.precipitation=new THREE.Points(geometry,material);
+    this.precipitation.visible=false;
+    this.precipitation.frustumCulled=false;this.scene.add(this.precipitation);
+  }
+  updateAtmosphere(dt=0){
+    const weather=this.effectiveWeather();
+    const era=this.world.era;
+    const skies={clear:0xaccde5,cloudy:0x91afc3,rain:0x768fa8,
+      snow:0xc8d8e1,windy:0xa1bfd3,dust:0xc7b28d};
+    const sky=era<120?0x684c43:skies[weather]||skies.clear;
+    this.scene.background.setHex(this.weatherFlash>.18?0xe4ecf3:sky);
+    if(this.fogMode==="none"){this.scene.fog=null}
+    else{
+      const density=this.fogMode==="atmospheric"?.0045:
+        ({clear:.003,cloudy:.008,rain:.021,snow:.026,dust:.018,windy:.007}[weather]||.005);
+      if(!this.scene.fog)this.scene.fog=new THREE.FogExp2(sky,density);
+      this.scene.fog.color.setHex(sky);this.scene.fog.density=density;
+    }
+    if(this.precipitation){
+      const active=["rain","snow"].includes(weather)&&era>=120;
+      this.precipitation.visible=active;
+      if(active){
+        this.precipitation.material.color.setHex(weather==="snow"?0xffffff:0xbed9ed);
+        this.precipitation.material.size=weather==="snow"?.65:.21;
+        this.precipitation.position.x=this.controls.target.x;
+        this.precipitation.position.z=this.controls.target.z;
+        const arr=this.precipitation.geometry.attributes.position;
+        for(let i=0;i<arr.count;i++){
+          let y=arr.getY(i)-dt*(weather==="rain"?24:5);
+          if(y<0)y+=55;
+          arr.setY(i,y);
+        }
+        arr.needsUpdate=true;
+      }
+    }
+  }
   setRenderDistance(radius){
     this.renderRadius=Math.max(2,Math.min(4,Math.round(radius)));
     this.terrainChunks.forEach(t=>t.geometry.dispose());
@@ -95,12 +156,12 @@ export class SurfaceView{
   }
   buildTerrain(){this.updateTiles(true)}
   makeTerrainTile(cx,cz,detail=true,explored=true){
-    const size=STREAM_CHUNK_SIZE,segments=detail?20:7;
+    const size=STREAM_CHUNK_SIZE,segments=detail?32:6;
     const geometry=new THREE.PlaneGeometry(size,size,segments,segments);
     geometry.rotateX(-Math.PI/2);
     const positions=geometry.attributes.position,colors=[];
     const centerX=(cx+.5)*size,centerZ=(cz+.5)*size;
-    const tint=new THREE.Color(),unknown=new THREE.Color(0x526774);
+    const tint=new THREE.Color();
     for(let i=0;i<positions.count;i++){
       const x=centerX+positions.getX(i),z=centerZ+positions.getZ(i);
       const s=this.world.sample(x,z);
@@ -114,7 +175,6 @@ export class SurfaceView{
       else if(s.biome==="forest")tint.setHex(0x5d925d);
       else if(s.biome==="dryland")tint.setHex(0xb59f6f);
       else tint.setHex(0x86a86e);
-      if(!explored)tint.lerp(unknown,.56);
       colors.push(tint.r,tint.g,tint.b);
     }
     positions.needsUpdate=true;
@@ -143,8 +203,7 @@ export class SurfaceView{
         desired.set(key,{xx,zz,detail,explored});
       }
     for(const [key,mesh]of this.terrainChunks){
-      if(desired.has(key)&&mesh.userData.detail===desired.get(key).detail&&
-          mesh.userData.explored===desired.get(key).explored)continue;
+      if(desired.has(key)&&mesh.userData.detail===desired.get(key).detail)continue;
       this.worldRoot.remove(mesh);mesh.geometry.dispose();this.terrainChunks.delete(key);
       const water=this.waterChunks.get(key);
       if(water){this.worldRoot.remove(water);water.geometry.dispose();this.waterChunks.delete(key)}
@@ -152,7 +211,7 @@ export class SurfaceView{
     for(const [key,t]of desired){
       if(this.terrainChunks.has(key))continue;
       const tile=this.makeTerrainTile(t.xx,t.zz,t.detail,t.explored);
-      tile.userData.detail=t.detail;tile.userData.explored=t.explored;
+      tile.userData.detail=t.detail;
       this.terrainChunks.set(key,tile);this.worldRoot.add(tile);
       if(this.world.era>=120){
         const water=new THREE.Mesh(new THREE.PlaneGeometry(size,size),m.water);
@@ -277,23 +336,38 @@ export class SurfaceView{
       const alive=this.world.trees.filter(t=>t.alive).length;
       if(alive!==this.treeCount)this.buildTreesAfterChanges();
     }
-    if(this.weatherFlash>0){this.weatherFlash=Math.max(0,this.weatherFlash-dt);
-      this.scene.background.setHex(this.weatherFlash>.18?0xdfefff:0xa1c7e4)}
-    else this.scene.background.setHex(this.world.era<120?0x684c43:(this.world.rain>0?0x819bab:0xa1c7e4));
+    if(this.weatherFlash>0)this.weatherFlash=Math.max(0,this.weatherFlash-dt);
+    this.updateAtmosphere(dt);
     for(const a of this.world.agents){
       if(!a.active)continue;
       const obj=this.characters.get(a.id);if(!obj)continue;
       const h=this.world.height(a.x,a.z);
-      obj.position.set(a.x,h+(a.type==="bird"?a.altitude:0),a.z);
+      const altitude=a.type==="bird"?a.altitude:a.type==="marine"?
+        Math.max(h+.55,-1.1)-h:0;
+      obj.position.set(a.x,h+altitude,a.z);
       obj.rotation.y=a.rotation;
+      const stride=a.motion?.stride||0,velocity=a.motion?.speed||0;
       if(obj.userData.wings){
-        obj.userData.wings[0].rotation.z=.5+Math.sin(now*.017+a.id)*.55;
-        obj.userData.wings[1].rotation.z=-.5-Math.sin(now*.017+a.id)*.55;
+        const flap=Math.sin(now*(a.species==="pterosaur"?.009:.018)+a.id);
+        obj.userData.wings[0].rotation.z= .14+flap*.67;
+        obj.userData.wings[1].rotation.z=-.14-flap*.67;
       }
       if(obj.userData.legs){
-        for(let i=0;i<obj.userData.legs.length;i++)
-          obj.userData.legs[i].rotation.x=(a.target?1:0)*Math.sin(now*.010+a.id+i*Math.PI)*.24;
+        for(let i=0;i<obj.userData.legs.length;i++){
+          const phase=i%2===Math.floor(i/2)%2?0:Math.PI;
+          obj.userData.legs[i].rotation.x=velocity>0?
+            Math.sin(stride+phase)*(a.goal==="fleeing"?.63:.36):0;
+        }
       }
+      if(obj.userData.arms)for(let i=0;i<obj.userData.arms.length;i++)
+        obj.userData.arms[i].rotation.x=velocity>0?
+          Math.sin(stride+Math.PI+i*Math.PI)*.30:
+          a.goal==="building shelter"?Math.sin(now*.008+i)*.45:0;
+      if(obj.userData.tail&&obj.userData.tail!==obj.userData.body)
+        obj.userData.tail.rotation.y=Math.sin(now*.004+a.id)*.19;
+      if(obj.userData.head&&a.goal==="foraging")
+        obj.userData.head.rotation.x=Math.sin(now*.003+a.id)*.17;
+      if(a.type==="marine")obj.rotation.z=Math.sin(now*.005+a.id)*.055;
     }
     if(this.followAgentId!==null){
       const followed=this.world.agents.find(a=>a.id===this.followAgentId&&a.active);
@@ -318,6 +392,10 @@ export class SurfaceView{
       if(!c.userData.sharedGeometry)c.geometry?.dispose();
       if(c.material&&!c.userData.sharedMaterial&&!shared.includes(c.material))c.material.dispose();
     });
+    if(this.precipitation){
+      this.precipitation.geometry.dispose();this.precipitation.material.dispose();
+      this.scene.remove(this.precipitation);
+    }
     this.terrainMaterial.dispose();this.renderer.dispose();
   }
 }
