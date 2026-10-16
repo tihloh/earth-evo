@@ -44,7 +44,8 @@ export class SurfaceView{
     sun.shadow.camera.left=-100;sun.shadow.camera.right=100;sun.shadow.camera.top=100;sun.shadow.camera.bottom=-100;
     sun.shadow.camera.far=230;this.scene.add(sun);
     this.worldRoot=new THREE.Group();this.scene.add(this.worldRoot);
-    this.characters=new Map();this.structures=new Map();this.instanced=[];this.treeMeshes=[];this.treeCount=0;this.visible=true;this.weatherFlash=0;this.speed=1;this.paused=false;this.followAgentId=null;
+    this.characters=new Map();this.structures=new Map();this.instanced=[];
+    this.distantAgents=new THREE.Group();this.nearAgentLimit=70;this.treeMeshes=[];this.treeCount=0;this.visible=true;this.weatherFlash=0;this.speed=1;this.paused=false;this.followAgentId=null;
     this.terrain=null;this.river=null;this.pointerDown=null;this.interactTargets=[];
     this.terrainChunks=new Map();this.terrainMeshes=[];
     this.waterChunks=new Map();this.landmarkChunks=new Map();this.renderRadius=3;
@@ -158,6 +159,7 @@ export class SurfaceView{
       this.worldRoot.remove(child);
     }
     this.instanced=[];this.treeMeshes=[];this.characters.clear();this.structures.clear();
+    this.distantAgents=new THREE.Group();this.worldRoot.add(this.distantAgents);
     this.terrainChunks.clear();this.waterChunks.clear();this.landmarkChunks.clear();
     this.terrainMeshes=[];
     this.streamer=new OpenWorldStreamer(this.world);
@@ -328,13 +330,53 @@ export class SurfaceView{
     return root;
   }
   syncAgents(){
-    const available=new Set(this.world.agents.filter(a=>a.active).map(a=>a.id));
-    for(const [id,obj] of this.characters)if(!available.has(id)){
-      this.worldRoot.remove(obj);this.characters.delete(id);
+    // Close animals show full heads/ears/teeth/limbs. Distant wildlife uses
+    // one GPU-instanced low-detail shape per guild instead of hundreds of meshes.
+    const candidates=this.world.agents.filter(a=>a.active).map(a=>({
+      agent:a,
+      distance:(a.x-this.controls.target.x)**2+(a.z-this.controls.target.z)**2
+    })).sort((a,b)=>a.distance-b.distance);
+    const nearest=candidates.slice(0,this.nearAgentLimit);
+    const chosen=new Set(nearest.map(v=>v.agent.id));
+    if(this.followAgentId!==null)chosen.add(this.followAgentId);
+    for(const [id,obj] of this.characters)if(!chosen.has(id)){
+      this.worldRoot.remove(obj);
+      this.characters.delete(id);
     }
-    for(const a of this.world.agents){
-      if(!a.active){const obj=this.characters.get(a.id);if(obj){this.worldRoot.remove(obj);this.characters.delete(a.id)}continue}
-      if(!this.characters.has(a.id))this.characters.set(a.id,this.makeAgentMesh(a));
+    for(const item of candidates)if(chosen.has(item.agent.id)&&!this.characters.has(item.agent.id)){
+      this.characters.set(item.agent.id,this.makeAgentMesh(item.agent));
+    }
+    for(const child of [...this.distantAgents.children]){
+      this.distantAgents.remove(child);
+      child.geometry.dispose();child.material.dispose();
+    }
+    const far=candidates.filter(v=>!chosen.has(v.agent.id));
+    const groups=new Map();
+    for(const {agent:a} of far){
+      if(!groups.has(a.type))groups.set(a.type,[]);
+      groups.get(a.type).push(a);
+    }
+    const palette={human:0xe6b88b,grazer:0xc6b38a,predator:0xbd8658,
+      marine:0x71a8ba,bird:0xbac5cb};
+    const temp=new THREE.Object3D();
+    for(const [guild,creatures] of groups){
+      const mesh=new THREE.InstancedMesh(
+        new THREE.IcosahedronGeometry(.55,0),
+        new THREE.MeshStandardMaterial({color:palette[guild]||0x9aac92,
+          roughness:.91,flatShading:true}),
+        creatures.length
+      );
+      for(let i=0;i<creatures.length;i++){
+        const a=creatures[i],scale=Math.max(.3,Math.min(1.8,(a.size||1)*.48));
+        const h=this.world.height(a.x,a.z);
+        temp.position.set(a.x,h+(a.type==="bird"?a.altitude:a.type==="marine"?.5:.75),a.z);
+        temp.scale.set(scale,scale*.75,scale*1.35);
+        temp.rotation.y=a.rotation;
+        temp.updateMatrix();mesh.setMatrixAt(i,temp.matrix);
+      }
+      mesh.instanceMatrix.needsUpdate=true;
+      mesh.frustumCulled=false;
+      this.distantAgents.add(mesh);
     }
   }
   syncBuildings(){
