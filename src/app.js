@@ -288,9 +288,14 @@ $("localSpeed").addEventListener("change",e=>{if(localView)localView.speed=Numbe
 $("enterSurface").addEventListener("click",enterSurface);
 $("leaveSurface").addEventListener("click",leaveSurface);
 let pointStart=null;
-$("globe").addEventListener("pointerdown",e=>pointStart={x:e.clientX,y:e.clientY});
+$("globe").addEventListener("contextmenu",e=>e.preventDefault());
+$("globe").addEventListener("pointerdown",e=>{
+  pointStart=e.button===0?{x:e.clientX,y:e.clientY,pointerId:e.pointerId}:null;
+});
 $("globe").addEventListener("pointerup",e=>{
-  if(!pointStart||Math.hypot(pointStart.x-e.clientX,pointStart.y-e.clientY)>7)return;
+  const start=pointStart;pointStart=null;
+  if(e.button!==0||!start||start.pointerId!==e.pointerId||
+    Math.hypot(start.x-e.clientX,start.y-e.clientY)>7)return;
   const rect=$("globe").getBoundingClientRect();
   const mouse=new THREE.Vector2((e.clientX-rect.left)/rect.width*2-1,
     -(e.clientY-rect.top)/rect.height*2+1);
