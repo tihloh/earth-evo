@@ -34,7 +34,7 @@ function enterSurface(){
     onExit:leaveSurface,
     onAction:()=>updateLocalUi(true)
   });
-  localView.visible=true;
+  localView.visible=true;localView.speed=Number($("localSpeed").value);
   $("localLabel").textContent="Surface region · "+Math.abs(focus.lat).toFixed(1)+"°"+
     (focus.lat>=0?" N":" S")+" · "+Math.abs(focus.lon).toFixed(1)+"°"+(focus.lon>=0?" E":" W");
   $("enterSurface").textContent="⌕ Explore surface";
@@ -50,6 +50,7 @@ function leaveSurface(){
 }
 function showInspection(agent){
   inspectedId=agent?.id??null;
+  if(localView&&localView.followAgentId!==null&&inspectedId!==localView.followAgentId)localView.followAgentId=null;
   updateLocalUi(true);
 }
 function updateLocalUi(force=false){
@@ -60,6 +61,10 @@ function updateLocalUi(force=false){
   $("localPredators").textContent=counts.predator;$("localBirds").textContent=counts.bird;
   $("localBuildings").textContent=localWorld.structures.length;
   let agent=localWorld.agents.find(a=>a.id===inspectedId);
+  const canFollow=agent?.active===true;
+  $("followCreature").disabled=!canFollow;
+  $("followCreature").textContent=localView?.followAgentId===inspectedId&&canFollow?
+    "◉ Stop following":"◎ Follow selected creature";
   if(inspectedId!==null&&!agent)agent=localWorld.structures.find(a=>a.id===inspectedId);
   const out=$("creatureInspector");
   if(agent){
@@ -81,6 +86,18 @@ function updateLocalUi(force=false){
     li.append(s,msg);list.append(li);
   }
 }
+$("followCreature").addEventListener("click",()=>{
+  if(!localView||inspectedId===null)return;
+  localView.followAgentId=localView.followAgentId===inspectedId?null:inspectedId;
+  updateLocalUi(true);
+});
+$("localPause").addEventListener("click",()=>{
+  if(!localView)return;
+  localView.paused=!localView.paused;
+  $("localPause").textContent=localView.paused?"▶ Resume life":"Ⅱ Pause life";
+  $("localPause").setAttribute("aria-pressed",String(localView.paused));
+});
+$("localSpeed").addEventListener("change",e=>{if(localView)localView.speed=Number(e.target.value)});
 $("enterSurface").addEventListener("click",enterSurface);
 $("leaveSurface").addEventListener("click",leaveSurface);
 let pointStart=null;
