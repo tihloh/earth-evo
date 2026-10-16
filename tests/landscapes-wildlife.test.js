@@ -81,6 +81,8 @@ test("extended animals respect their earliest and latest supported model milesto
  assert.equal(permitted(SPECIES.triceratops,1160,warm),false);
  assert.equal(permitted(SPECIES.wolf,1110,warm),false);
  assert.equal(permitted(SPECIES.wolf,1540,warm),true);
+ assert.equal(permitted(SPECIES.human,1600,warm),true);
+ assert.equal(permitted(SPECIES.wolf,1600,warm),true);
  assert.equal(permitted(SPECIES.shark,1540,warm),false);
  assert.equal(permitted(SPECIES.shark,1540,sea),true);
 });
