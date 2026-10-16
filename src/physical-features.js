@@ -23,9 +23,14 @@ export function classifyPhysicalFeature(s,nearby=null){
    if(s.waterKind==="lake")return {category:"water",name:h<.8?"pond":"lake",shore:coast};
    if(s.waterKind==="lagoon")return {category:"water",name:"lagoon",shore:true};
    if(s.waterKind==="sea")return {category:"water",name:"sea",shore:coast};
+   if(Math.abs(lat)>67&&coast&&steep>1.8)return {category:"water",name:"fjord",shore:true};
+   if(Math.abs(lat)>72&&coast)return {category:"water",name:"glacial inlet",shore:true};
+   if(Math.abs(lat)<28&&coast&&h>-.9&&s.moisture>.54)
+     return {category:"water",name:"reef",shore:true};
    if(coast&&factor>1.0)return {category:"water",name:"bay",shore:true};
    if(coast&&factor<-.9)return {category:"water",name:"gulf",shore:true};
-   if(coast&&Math.abs(factor)<.18)return {category:"water",name:"strait",shore:true};
+   if(coast&&Math.abs(factor)<.18)
+     return {category:"water",name:factor>0?"strait":"channel",shore:true};
    return {category:"water",name:"ocean",shore:coast};
  }
  if(s.river){
@@ -41,12 +46,15 @@ export function classifyPhysicalFeature(s,nearby=null){
    return {category:"land",name:steep>1.6?"coastal bluff":"beach",shore:true};
  }
  if(h>12&&factor>1)return {category:"land",name:"volcano",shore:false};
+ if(h>10&&factor< -1.15)return {category:"land",name:"crater",shore:false};
+ if(h>3&&steep>2.7&&factor>.55)return {category:"land",name:"cave entrance",shore:false};
  if(h>10)return {category:"land",name:steep>2?"mountain range":"mountain",shore:false};
  if(h>8)return {category:"land",name:steep>1.5?"ridge":"highland",shore:false};
  if(h>5&&steep<.6)return {category:"land",name:factor>0?"plateau":"mesa",shore:false};
  if(h>4)return {category:"land",name:"hill",shore:false};
  if(h<-0.5&&steep>1.8)return {category:"land",name:factor>0?"canyon":"gorge",shore:false};
  if(h<1&&m>.73)return {category:"land",name:factor>0?"marsh":"floodplain",shore:false};
+ if(h<1.6&&m>.67)return {category:"land",name:"wetland",shore:false};
  if(m<.26)return {category:"land",name:factor>.2?"dune":"desert",shore:false};
  if(steep>2&&h>2)return {category:"land",name:"cliff",shore:false};
  if(factor<-.9)return {category:"land",name:"valley",shore:false};
