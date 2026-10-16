@@ -80,9 +80,10 @@ test("invalid regional save data cannot create massive worlds",()=>{
 
 test("multiple vegetation types and ground cover are biome-driven",()=>{
   const ancient=landWorld(42,870);
-  assert.ok(ancient.trees.length>=100);
-  assert.ok(ancient.trees.every(t=>["pine","cedar"].includes(t.species)));
-  assert.ok(ancient.undergrowth.every(p=>["reed","fern"].includes(p.species)));
+  assert.equal(ancient.trees.length,0,"early land colonization has no anachronistic modern trees");
+  assert.ok(ancient.undergrowth.length>0,"early land plants establish ground cover");
+  assert.ok(ancient.undergrowth.every(p=>
+    ["earlyMoss","algalMat","clubmoss","horsetail"].includes(p.species)));
   const modern=landWorld(42,1540);
   assert.ok(new Set(modern.trees.map(t=>t.species)).size>=3);
   assert.ok(new Set(modern.undergrowth.map(p=>p.species)).size>=4);
