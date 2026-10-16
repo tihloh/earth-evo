@@ -14,6 +14,7 @@ import {tileSegments} from "./zoom-continuum.js";
 import {buildHorizonTerrain} from "./horizon-terrain.js";
 import {createOceanSurface,updateOceanSurface} from "./water-view.js";
 import {waterSignal,waterSurfaceHeight,clipWaterTriangle} from "./water-geometry.js";
+import {stitchedTerrainHeight,terrainSeamKey} from "./terrain-lod.js";
 
 const color=(hex)=>new THREE.MeshStandardMaterial({color:hex,roughness:1,flatShading:true});
 const m={trunk:color(0x65452e),leaf:color(0x4c9860),leaf2:color(0x60ac64),
@@ -192,7 +193,7 @@ export class SurfaceView{
     this.syncAgents();this.syncBuildings();
   }
   buildTerrain(){this.updateTiles(true)}
-  makeTerrainTile(cx,cz,segments=32){
+  makeTerrainTile(cx,cz,segments=32,edges={}){
     const size=STREAM_CHUNK_SIZE;
     const geometry=new THREE.PlaneGeometry(size,size,segments,segments);
     geometry.rotateX(-Math.PI/2);
@@ -202,7 +203,14 @@ export class SurfaceView{
     for(let i=0;i<positions.count;i++){
       const x=centerX+positions.getX(i),z=centerZ+positions.getZ(i);
       const s=this.world.sample(x,z);
-      positions.setY(i,s.height);
+      const col=i%(segments+1),row=Math.floor(i/(segments+1));
+      const stitch=(col===0&&edges.left>0&&edges.left<segments)||
+        (col===segments&&edges.right>0&&edges.right<segments)||
+        (row===0&&edges.top>0&&edges.top<segments)||
+        (row===segments&&edges.bottom>0&&edges.bottom<segments);
+      positions.setY(i,stitch?stitchedTerrainHeight(
+        (xx,zz)=>this.world.height(xx,zz),cx,cz,size,segments,col,row,edges
+      ):s.height);
       if(this.world.era<120)tint.setHex(s.land?0x97523d:0xdf6737);
       else if(!s.land)tint.setHex(0x576f71);
       else if(s.river)tint.setHex(0x397f9a);
@@ -291,8 +299,19 @@ export class SurfaceView{
         const segments=tileSegments(distance,eye);
         desired.set(key,{xx,zz,segments});
       }
+    for(const tile of desired.values()){
+      const xx=tile.xx,zz=tile.zz;
+      tile.edges={
+        left:desired.get((xx-1)+","+zz)?.segments||0,
+        right:desired.get((xx+1)+","+zz)?.segments||0,
+        top:desired.get(xx+","+(zz-1))?.segments||0,
+        bottom:desired.get(xx+","+(zz+1))?.segments||0
+      };
+      tile.seamKey=terrainSeamKey(tile.edges);
+    }
     for(const [key,mesh]of this.terrainChunks){
-      if(desired.has(key)&&mesh.userData.segments===desired.get(key).segments)continue;
+      if(desired.has(key)&&mesh.userData.segments===desired.get(key).segments&&
+         mesh.userData.seamKey===desired.get(key).seamKey)continue;
       this.worldRoot.remove(mesh);mesh.geometry.dispose();this.terrainChunks.delete(key);
       const landmarks=this.landmarkChunks.get(key);
       if(landmarks){
@@ -305,8 +324,9 @@ export class SurfaceView{
     }
     for(const [key,t]of desired){
       if(this.terrainChunks.has(key))continue;
-      const tile=this.makeTerrainTile(t.xx,t.zz,t.segments);
+      const tile=this.makeTerrainTile(t.xx,t.zz,t.segments,t.edges);
       tile.userData.segments=t.segments;
+      tile.userData.seamKey=t.seamKey;
       this.terrainChunks.set(key,tile);this.worldRoot.add(tile);
       if(t.segments>=32&&this.world.era>=120){
         const landmarks=createLandformLandmarks(this.world,t.xx,t.zz,size);
