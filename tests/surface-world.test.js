@@ -73,3 +73,15 @@ test("invalid regional save data cannot create massive worlds",()=>{
   const data=w.toJSON();data.trees=Array(650).fill({});
   assert.throws(()=>SurfaceWorld.fromJSON(data));
 });
+
+test("multiple vegetation types and ground cover are biome-driven",()=>{
+  const ancient=new SurfaceWorld(42,870,8,0);
+  assert.ok(ancient.trees.length>=100);
+  assert.ok(ancient.trees.every(t=>["pine","cedar"].includes(t.species)));
+  assert.ok(ancient.undergrowth.every(p=>["reed","fern"].includes(p.species)));
+  const modern=new SurfaceWorld(42,1540,8,0);
+  assert.ok(new Set(modern.trees.map(t=>t.species)).size>=6);
+  assert.ok(new Set(modern.undergrowth.map(p=>p.species)).size>=6);
+  assert.ok(modern.undergrowth.length>500);
+  assert.deepEqual(SurfaceWorld.fromJSON(modern.toJSON()).undergrowth,modern.undergrowth);
+});
