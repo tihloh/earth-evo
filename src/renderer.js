@@ -66,7 +66,7 @@ export class PlanetView {
     const size=width*height;
     if(!this.geographyCache||this.geographyCache.seed!==world.seed){
       const samples=new Float32Array(size),moisture=new Float32Array(size),
-        temperatures=new Float32Array(size),rivers=new Uint8Array(size),latitudes=new Float32Array(height);
+        temperatures=new Float32Array(size),channels=new Float32Array(size),latitudes=new Float32Array(height);
       for(let y=0;y<height;y++){
         const {lat}=globeUVToGeo(0,(y+.5)/height);
         latitudes[y]=lat;
@@ -74,10 +74,10 @@ export class PlanetView {
           const {lon}=globeUVToGeo((x+.5)/width,(y+.5)/height);
           const s=sampleGeography(lat,lon,world.seed,0),index=y*width+x;
           samples[index]=s.elevation;moisture[index]=s.moisture;
-          temperatures[index]=s.temperature;rivers[index]=s.river?1:0;
+          temperatures[index]=s.temperature;channels[index]=s.channel;
         }
       }
-      this.geographyCache={seed:world.seed,samples,moisture,temperatures,rivers,latitudes};
+      this.geographyCache={seed:world.seed,samples,moisture,temperatures,channels,latitudes};
     }
     const geo=this.geographyCache;
     const image=this.ctx.createImageData(width,height),pixels=image.data;
@@ -87,7 +87,7 @@ export class PlanetView {
         h=(elevation-seaLevel)*17.5,latitude=Math.abs(geo.latitudes[y]),
         moist=geo.moisture[i],temp=geo.temperatures[i];
       const sample={land,height:h,ice:land&&(latitude>74||temp<-8),
-        river:land&&geo.rivers[i]===1&&h<8,moisture:moist,
+        river:land&&moist>.45&&h<8&&geo.channels[i]<.075,moisture:moist,
         biome:!land?"ocean":h>8?"alpine":moist>.65?"forest":moist<.35?"dryland":"grassland"};
       const rgb=globeColor(sample,era);
       // Relief shading is computed from the same elevation samples, not a separate map.
