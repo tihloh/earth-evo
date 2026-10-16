@@ -200,3 +200,11 @@ p{color:#acc1d0;line-height:1.7}
 #localTerrainInfo{font-size:.72rem;line-height:1.45;color:#b9d0dc;
   border-left:2px solid #659eae;padding:5px 0 5px 9px;min-height:29px}
 @media(max-width:710px){.environment-controls select{width:min(150px,64%)}}
+
+/* Geography scout and animal-specific god placement stay compact in the floating HUD. */
+.surface-picker{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:5px;margin:6px 0 8px}
+.surface-picker select{min-width:0;width:100%;border:1px solid #365b70;background:#143448;
+ color:#e8f5fb;border-radius:7px;padding:7px 5px;font-size:.72rem}
+.surface-picker button{padding:7px 9px;border:1px solid #518c9c;background:#205469;
+ color:#eaffff;border-radius:7px;font-size:.73rem;white-space:nowrap}
+.surface-picker select:focus-visible,.surface-picker button:focus-visible{outline:2px solid #7fe6d6}
