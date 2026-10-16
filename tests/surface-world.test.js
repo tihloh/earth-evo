@@ -42,7 +42,7 @@ test("god actions affect actual world state",()=>{
   assert.ok(w.structures.length>2);
 });
 test("local worlds are deterministic for the same seed and location",()=>{
-  const a=landWorld(9,1490),b=new SurfaceWorld(9,1490,-10,110);
+  const a=landWorld(9,1490),b=landWorld(9,1490);
   for(let i=0;i<800;i++){a.update(.05);b.update(.05)}
   assert.deepEqual(a.counts,b.counts);
   assert.deepEqual(a.events,b.events);
