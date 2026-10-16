@@ -28,9 +28,14 @@ export function createLandformLandmarks(world,cx,cz,size){
    const angle=i*1.618;
    if(count>=3)break;
    if(["volcano","crater"].includes(form)&&s.land){
-     const radius=form==="volcano"?2.8:2;
-     obj(group,new THREE.ConeGeometry(radius,3.2,7),"basalt",x,py+1.55,z,angle);
-     obj(group,new THREE.TorusGeometry(radius*.35,.19,5,9),"shadow",x,py+3.08,z).rotation.x=Math.PI/2;
+     // The mountain-sized volcanic cone and summit crater come from geography.js.
+     // Only place small surface rocks here; a fake mini-cone would float above
+     // the real terrain and make the volcano appear toy-sized.
+     for(let j=0;j<3;j++){
+       const px=x+Math.cos(angle+j*2.09)*1.4,pz=z+Math.sin(angle+j*2.09)*1.4;
+       obj(group,new THREE.DodecahedronGeometry(.33+j*.12,0),"basalt",
+         px,world.height(px,pz)+.14,pz,angle+j);
+     }
      count++;
    }else if(["cave entrance","cliff","gorge","canyon"].includes(form)&&s.land){
      obj(group,new THREE.DodecahedronGeometry(2.2,0),"rock",x,py+1.05,z);
