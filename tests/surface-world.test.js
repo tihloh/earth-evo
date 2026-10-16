@@ -1,17 +1,18 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {SurfaceWorld,terrainHeight,riverX} from "../src/surface-world.js";
+import {SurfaceWorld} from "../src/surface-world.js";
 import {sampleLocal,sampleGeography,localToGeo,globeUVToGeo} from "../src/geography.js";
 import {OpenWorldStreamer} from "../src/open-world.js";
 const landWorld=(seed=42,era=1540)=>new SurfaceWorld(seed,era,-20,-55);
 
-test("terrain includes mountains, lowlands and a river corridor",()=>{
-  const seed=42;const samples=[];
-  for(let z=-80;z<80;z+=10)for(let x=-80;x<80;x+=10)
-    samples.push(terrainHeight(x,z,seed));
-  assert.ok(Math.max(...samples)>8,"mountain peaks present");
-  assert.ok(Math.min(...samples)<-2,"low coastline / island inlets present");
-  assert.ok(Number.isFinite(riverX(40,seed)));
+test("the canonical global generator contains mountains, oceans and lowlands",()=>{
+  const seed=42, samples=[];
+  for(let lat=-75;lat<=75;lat+=5)
+    for(let lon=-180;lon<180;lon+=5)
+      samples.push(sampleGeography(lat,lon,seed));
+  assert.ok(samples.some(s=>s.height>8),"mountains are represented");
+  assert.ok(samples.some(s=>s.height<0),"oceans are represented");
+  assert.ok(samples.some(s=>s.land&&s.height>0&&s.height<3),"lowlands are represented");
 });
 test("historical gates keep humans and birds absent in early history",()=>{
   const old=landWorld(42,400);
