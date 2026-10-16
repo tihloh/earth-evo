@@ -47,7 +47,7 @@ Local creatures are not simple animated loops:
 - **Herbivores** graze, forage, flee nearby predators and reproduce.
 - **Predators** search for prey and hunt when hungry.
 - **Birds** fly, forage and avoid dangers.
-- **Humans** explore, seek food, gather timber, deliver supplies, socialize, escape predators and construct shelters when materials are available.
+- **Humans** explore, seek food, hunt, gather timber, deliver supplies, socialize, escape predators and construct shelters when materials are available.
 - **Trees** regenerate food, can be consumed or harvested, and slowly disperse seeds.
 
 Each individual has different **curiosity, courage, sociability and diligence**, keeps rudimentary memories of food and danger, and acquires simple survival or crafting experience. The inspector shows their current goals, motivations, hunger, energy and learned skills. This is **rule-based utility/goal AI, not consciousness, reasoning language models or independent artificial general intelligence**.
