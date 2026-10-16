@@ -3,7 +3,7 @@
 
 **Earth Evo** is an interactive simulation prototype that follows a fictionalized, science-inspired Earth from planetary formation (~4.54 billion years ago), through the emergence and diversification of life, to human settlements and hypothetical futures.
 
-**Current status: v0.3 — multiscale 3D simulation prototype.** It includes a navigable planetary globe, a close-up procedural regional world with autonomous creatures, and a simplified worldwide ecosystem/civilization simulation. It is **not** a physically accurate 4.54-billion-year reconstruction, a full Darwinian genetics simulator, or a Civilization-scale strategy game.
+**Current status: v0.4 — detailed multiscale 3D sandbox with precision navigation and compact HUD.** It includes a navigable planetary globe, a close-up procedural regional world with autonomous creatures, and a simplified worldwide ecosystem/civilization simulation. It is **not** a physically accurate 4.54-billion-year reconstruction, a full Darwinian genetics simulator, or a Civilization-scale strategy game.
 
 ## Run it
 
@@ -64,6 +64,26 @@ In the surface view choose a power in the right sidebar, then click the landscap
 
 Set the regional simulation to **1×, 4× or 10×**, or pause local life while keeping the 3D camera interactive.
 
+## Camera navigation and compact HUD
+
+**The world view now fills the central workspace**, and small translucent HUD panels float over it instead of occupying permanent sidebar columns.
+
+- **World HUD** toggles planetary conditions, species information and civilization statistics.
+- **Actions HUD** toggles the creature inspector, events and interactive god powers.
+- **General timeline** is a slim bottom strip to keep historical navigation available while leaving more room for the 3D scene.
+- **Left-drag / one-finger drag** orbits the view; **right-drag / two-finger pan** moves the focus point.
+- **Wheel / trackpad zoom** is anchored toward the pointer in both planet and regional views.
+- **Camera glide** defaults to **Precise (2%)**: the orbit controller applies approximately 98% of an input on its first 60 Hz update, with 2% residual damping. The toolbar also offers **None (0%)** and **Soft (5%)**. These percentages describe *residual motion*, not a measured accuracy guarantee.
+- Idle planet rotation is turned off. The selected world stays still when you stop manipulating the camera.
+- Camera panning is confined to the local map while you explore the detailed terrain.
+- From surface view, select **Return to planet** for a deliberate switch of scale.
+
+### Detailed procedural vegetation and animals
+
+The regional biome now uses multiple recognizable tree species—**oak, birch, pine, cedar, palm, acacia, willow and mangrove**—plus **ferns, shrubs, grasses, reeds, flowers and heather**. Their placement is influenced by slope, nearby water, temperature era and moisture estimates. Vegetation is instanced into GPU-efficient draw groups.
+
+People now have individual low-poly heads, skin tones, hair, clothing, limbs, faces and optional backpacks/headwear. Grazers and predators use four-legged articulated models with eyes, ears, snouts, tails, paws/hooves and optional antlers. Birds use beaks, eyes, tails and animated articulated wings. The models are **original procedural stylized meshes**, not photorealistic assets or named real-world animal species.
+
 ## Controls
 
 - **General timeline scrollbar:** Drag the large bar at the bottom **both forward and backward** from 4.54 billion years ago through a hypothetical 2200 CE. **The simulation state** rewinds/restores, not only the displayed date.
@@ -104,11 +124,15 @@ src/
   simulation.js          Reproducible global world/ecosystem/civilization core
   renderer.js            Three.js planet and markers
   surface-world.js       Local terrain functions and autonomous creature AI
-  surface-view.js        3D terrain, animals, vegetation, buildings and camera
+  surface-view.js        3D terrain, creature instances, buildings and camera
+  creature-models.js     Articulated, procedural humans, quadrupeds and birds
+  vegetation-view.js     Instanced trees and biome ground cover
+  camera-controls.js     Shared cursor zoom, pan and 0/2/5% glide tuning
   styles.css             Responsive styles for planet, local explorer and timeline
 tests/
   simulation.test.js     Node tests for rewind/replay, seeds and interventions
   surface-world.test.js  Terrain, autonomy, intervention and reproducibility tests
+  camera-controls.test.js Camera response and panning bounds tests
 docs/
   ARCHITECTURE.md        Long-term engine plan
 .github/workflows/
@@ -125,8 +149,9 @@ docs/
 - [x] Climate/impact intervention controls, save/load, automated tests
 - [ ] Biological agents with richer genetics, organisms, anatomies and life cycles
 - [ ] Continental movement, plate tectonics and higher fidelity climate
-- [x] Procedural local 3D terrain, forests, river, islands and animated low-poly wildlife
+- [x] Procedural local 3D terrain, river, islands, varied forests and detailed animated low-poly wildlife
 - [x] Zoom-to-surface navigation, inspector, god powers and creature following
+- [x] Cursor-focused precision zoom, optional 0–5% glide, panning and compact collapsible HUDs
 - [ ] More detailed 3D organisms, species-specific environments, cities and infrastructure
 - [ ] Detailed human civilizations, trade, conflict, governments and technologies
 - [ ] Space-age civilizations and long-term multi-planet simulations
