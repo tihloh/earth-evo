@@ -5,6 +5,7 @@ import {ecologyStageAt,SPECIES} from "./era-ecology.js";
 import {findScenicLocation} from "./geography.js";
 import {SurfaceView} from "./surface-view.js";
 import {enterSurfaceAt,ZOOM_CROSSFADE_MS} from "./zoom-transition.js";
+import {ZoomContinuum} from "./zoom-continuum.js";
 import * as THREE from "three";
 
 const $=id=>document.getElementById(id);
@@ -15,6 +16,8 @@ let pendingSeek=null,seekFrame=false,rendering=false;
 let localActive=false,localView=null,localWorld=null,localEra=-1,localSeed=-1;
 let focus={lat:-20,lon:-55},inspectedId=null,lastLocalUi=0;
 let focusPinned=false,transitionToken=0;
+const continuousZoom=new ZoomContinuum();
+let zoomTransitionBusy=false;
 const hudState={left:window.innerWidth>850,right:window.innerWidth>710};
 function setHud(side,opened){
   if(side!=="left"&&side!=="right")return;
@@ -179,32 +182,50 @@ function blendWorldView(toSurface){
   },reduced?50:ZOOM_CROSSFADE_MS+60);
 }
 function enterSurface(){
-  if(localActive)return;
+  if(localActive||zoomTransitionBusy)return;
+  zoomTransitionBusy=true;
   setPlaying(false);
-  if(!focusPinned)focus=centerPlanetFocus();
-  focusPinned=false;localActive=true;
-  $("surfaceViewport").hidden=false;
-  $("localPanel").hidden=false;
-  createSurface(false);
-  if(!localView)localView=new SurfaceView($("surface"),$("surfaceViewport"),localWorld,{
-    onSelect:showInspection,
-    onExit:leaveSurface,
-    onAction:()=>updateLocalUi(true)
-  });
-  localView.visible=true;localView.speed=Number($("localSpeed").value);
-  localView.setGlide(Number($("cameraGlide").value));
-  localView.setRenderDistance(Number($("renderDistance").value));
-  localView.setFogMode($("fogMode").value);
-  localView.setWeatherChoice($("weatherMode").value);
-  refreshSpeciesPicker();
-  localView.resize();
-  alignSurfaceCamera();
-  setHud("left",false);setHud("right",true);
-  blendWorldView(true);
-  updateLocalUi(true);
+  const lastFocus={...focus};
+  try{
+    if(!focusPinned)focus=centerPlanetFocus();
+    focusPinned=false;localActive=true;
+    $("surfaceViewport").hidden=false;
+    $("localPanel").hidden=false;
+    createSurface(false);
+    if(!localView)localView=new SurfaceView($("surface"),$("surfaceViewport"),localWorld,{
+      onSelect:showInspection,
+      onExit:leaveSurface,
+      onAction:()=>updateLocalUi(true)
+    });
+    localView.visible=true;localView.speed=Number($("localSpeed").value);
+    localView.setGlide(Number($("cameraGlide").value));
+    localView.setRenderDistance(Number($("renderDistance").value));
+    localView.setFogMode($("fogMode").value);
+    localView.setWeatherChoice($("weatherMode").value);
+    refreshSpeciesPicker();
+    localView.resize();
+    alignSurfaceCamera();
+    setHud("left",false);setHud("right",true);
+    blendWorldView(true);
+    continuousZoom.reset();
+    updateLocalUi(true);
+  }catch(error){
+    // Older builds silently stranded the app in localActive=true on failure.
+    // Restore the globe and show the actual cause so zoom always remains usable.
+    console.error("Earth Evo: could not load detailed terrain",error);
+    localActive=false;focus=lastFocus;
+    $("surfaceViewport").hidden=true;$("localPanel").hidden=true;
+    document.body.classList.remove("world-surface");
+    view.controls.enabled=true;
+    if(localView)localView.visible=false;
+    $("status").textContent="Terrain zoom failed: "+(error?.message||String(error))+
+      ". Try zooming in again.";
+    continuousZoom.reset();
+  }finally{zoomTransitionBusy=false}
 }
 function leaveSurface(){
   if(!localActive)return;
+  continuousZoom.reset();
   alignPlanetCamera();
   localActive=false;
   $("localPanel").hidden=true;
@@ -444,22 +465,24 @@ $("loadFile").addEventListener("change",async event=>{
   }catch(error){$("status").textContent="Unable to load save: "+error.message}
   event.target.value="";
 });
-// OrbitControls can reach its minimum zoom without crossing a cursor-shifted
-// target distance. A direct wheel gesture near the globe therefore explicitly
-// completes the planet-to-surface transition.
+// Wheel and trackpad zoom must never depend only on OrbitControls' constrained
+// camera radius. Capture every inward gesture and escalate to finer terrain LOD.
 $("globe").addEventListener("wheel",event=>{
-  if(localActive||event.deltaY>=0)return;
-  const d=view.camera.position.distanceTo(view.controls.target);
-  if(enterSurfaceAt(d,false)||view.camera.position.length()<=4.6){
-    enterSurface();
-  }
-},{passive:true});
+  if(localActive||zoomTransitionBusy)return;
+  const distance=view.camera.position.distanceTo(view.controls.target);
+  continuousZoom.wheel(event.deltaY,event.deltaMode,distance);
+  if(event.deltaY<0&&(
+    continuousZoom.shouldEnter(distance)||
+    enterSurfaceAt(Math.min(distance,view.camera.position.length()),false)
+  ))enterSurface();
+},{passive:true,capture:true});
 function animate(now){
   const dt=Math.min(.12,(now-lastFrame)/1000);lastFrame=now;
-  if(enterSurfaceAt(Math.min(
+  // The camera can reach the inner globe shell between wheel events.
+  if(!localActive&&!zoomTransitionBusy&&enterSurfaceAt(Math.min(
     view.camera.position.distanceTo(view.controls.target),
     view.camera.position.length()
-  ),localActive))enterSurface();
+  ),false))enterSurface();
   if(localActive)updateLocalUi();
   if(playing){
     accumulator+=dt*speed;
