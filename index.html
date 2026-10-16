@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#07111d">
+<title>Earth Evo — Planet to Civilization</title>
+<style>
+:root{color-scheme:dark;font-family:Inter,system-ui,-apple-system,Segoe UI,sans-serif;background:#07111d;color:#ecf6ff}*{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(circle at 52% 42%,#14263e,#07111d 65%)}button,input,select{font:inherit}button{cursor:pointer;border:1px solid #334960;border-radius:9px;background:#182d44;color:#dcedfa;padding:9px 13px}button:hover{background:#25405c}button:focus-visible,input:focus-visible{outline:2px solid #70d2e9;outline-offset:3px}.header{height:68px;padding:0 25px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #2b3b4e;background:#0b1726c9}.brand{font-weight:800;letter-spacing:.15em;color:#fff}.brand span{color:#74dfe5}.sub{color:#90a7bc;font-size:.75rem;font-weight:600;letter-spacing:.15em}.tag{border:1px solid #2b5962;color:#81d9dd;padding:7px 10px;border-radius:30px;font-size:.73rem}.layout{display:grid;grid-template-columns:300px minmax(360px,1fr) 288px;min-height:calc(100vh - 170px)}aside{padding:28px 22px;background:#0e1b2acc;z-index:2}aside.left{border-right:1px solid #273a4b}aside.right{border-left:1px solid #273a4b}.overline{font-size:.67rem;letter-spacing:.16em;font-weight:700;color:#68c7d5}h1{font-size:2rem;line-height:1.12;letter-spacing:-.04em;margin:14px 0 12px}p{line-height:1.65;color:#a8bccd}#date{color:#78e0db;font-weight:700}#era{display:block;margin-top:22px;color:#accce0;font-size:.78rem;letter-spacing:.12em}.stages{display:flex;flex-direction:column;gap:5px;margin-top:28px}.stage{width:100%;text-align:left;background:transparent;border-color:transparent;color:#a7bacb;font-size:.82rem;padding:7px 11px}.stage.active{border-color:#265667;background:#123745;color:#a8f3eb}.stage:hover{background:#1b3548}.viewport{position:relative;overflow:hidden;min-height:460px}canvas{display:block;width:100%;height:100%;touch-action:none}.viewport-head{position:absolute;z-index:1;top:24px;left:25px;pointer-events:none}.viewport-foot{position:absolute;z-index:1;bottom:18px;left:22px;color:#93abbf;font-size:.74rem;pointer-events:none}.metric{padding:15px 0;border-bottom:1px solid #273a4b;display:flex;justify-content:space-between;gap:10px}.metric span{color:#9aafc3;font-size:.81rem}.metric strong{font-size:1.15rem}.section{margin:28px 0 10px}.notice{margin-top:30px;font-size:.75rem;color:#95aabe;border:1px solid #254355;background:#0e2232;padding:12px;border-radius:9px}.buttons{display:flex;gap:10px;flex-wrap:wrap}.buttons button{flex:1}.controls{padding:18px 28px;background:#0c1a2b;border-top:1px solid #263c51;display:grid;grid-template-columns:260px 1fr 200px;gap:20px;align-items:center}.controls input{width:100%;accent-color:#77dce1}.time{font-weight:800}.small{color:#9db0bf;font-size:.74rem}select{background:#182d44;border:1px solid #334960;color:#fff;border-radius:8px;padding:9px}.footer{padding:12px 25px;font-size:.73rem;color:#829bad;text-align:right}@media(max-width:1000px){.layout{grid-template-columns:240px 1fr}.right{grid-column:1/-1;display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.right>.overline,.right>.section,.right>.notice{grid-column:1/-1}.controls{grid-template-columns:1fr 1fr}}@media(max-width:680px){.layout{display:flex;flex-direction:column}.left{order:2}.viewport{order:1;height:440px}.right{order:3;grid-template-columns:1fr 1fr}.stages{display:grid;grid-template-columns:repeat(2,1fr)}.controls{display:flex;flex-direction:column;align-items:stretch}.header{padding:0 12px}.footer{text-align:center}}
+</style>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.186.1/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.186.1/examples/jsm/"}}</script>
+</head>
+<body>
+<header class="header"><div><div class="brand">◉ EARTH <span>EVO</span></div><div class="sub">PLANET → LIFE → CIVILIZATION</div></div><span class="tag">3D PROTOTYPE · v0.1</span></header>
+<div class="layout">
+<aside class="left">
+<div class="overline">EVOLUTIONARY TIMELINE</div><span id="era"></span><h1 id="title"></h1><strong id="date"></strong><p id="description"></p>
+<div class="overline section">MILESTONES</div><nav class="stages" id="stages" aria-label="Earth history milestones"></nav>
+</aside>
+<main class="viewport" id="viewport">
+<canvas id="earth" aria-label="Interactive three dimensional Earth"></canvas>
+<div class="viewport-head overline">EARTH / SOL SYSTEM</div>
+<div class="viewport-foot">Drag to rotate · Scroll to zoom · Milestones are an illustrative model</div>
+</main>
+<aside class="right">
+<div class="overline">WORLD CONDITIONS</div>
+<div class="metric"><span>Surface temperature</span><strong id="temperature"></strong></div>
+<div class="metric"><span>Ocean coverage</span><strong id="ocean"></strong></div>
+<div class="metric"><span>Atmospheric oxygen</span><strong id="oxygen"></strong></div>
+<div class="metric"><span>Biodiversity index</span><strong id="diversity"></strong></div>
+<div class="overline section">LIFE & CIVILIZATION</div>
+<div class="metric"><span>Microbial activity</span><strong id="microbes"></strong></div>
+<div class="metric"><span>Animal activity</span><strong id="animals"></strong></div>
+<div class="metric"><span>Human civilization</span><strong id="civilization"></strong></div>
+<div class="notice">These readings are illustrative indices tied to historical milestones. This version does not simulate natural selection or emergent civilizations.</div>
+</aside>
+</div>
+<div class="controls">
+<div><div class="overline">TIME ENGINE</div><div class="time" id="timeLabel">4.54 billion years ago</div></div>
+<div><input type="range" min="0" max="1400" value="0" id="timeline" aria-label="Simulation timeline"><div class="small">Formation of Earth → Speculative future</div></div>
+<div class="buttons"><button id="prev" title="Previous milestone">◀</button><button id="play">▶ Play</button><button id="next" title="Next milestone">▶</button><select id="speed" aria-label="Playback speed"><option value="1">1×</option><option value="4" selected>4×</option><option value="10">10×</option></select></div>
+</div>
+<footer class="footer">Three.js · Procedural surface · No backend required · Scientific and future estimates are simplified</footer>
+<script type="module">
+import * as THREE from "three";
+import {OrbitControls} from "three/addons/controls/OrbitControls.js";
+const stages=[
+{era:"HADEAN",name:"A world of fire",date:"4.54 billion years ago",desc:"Earth accretes and its young surface is dominated by heat and magma. Stable ecosystems do not exist.",temp:1300,sea:0,oxygen:0,bio:0,life:0},
+{era:"LATE HADEAN",name:"Oceans take shape",date:"4.3 billion years ago",desc:"Cooling rock and surface water transform a molten world into a planet with oceans and continents.",temp:86,sea:65,oxygen:0,bio:0,life:0},
+{era:"ARCHEAN",name:"The first life",date:"3.5 billion years ago",desc:"Microbial life becomes established in Earth's ancient environments.",temp:46,sea:73,oxygen:.01,bio:4,life:1},
+{era:"PALEOPROTEROZOIC",name:"The oxygen revolution",date:"2.4 billion years ago",desc:"Photosynthetic microbes alter the chemistry of the atmosphere and oceans.",temp:32,sea:72,oxygen:2,bio:10,life:1},
+{era:"PROTEROZOIC",name:"Complex cells",date:"1.8 billion years ago",desc:"Eukaryotic cells diversify, laying foundations for complex organisms.",temp:24,sea:73,oxygen:4,bio:18,life:2},
+{era:"NEOPROTEROZOIC",name:"Multicellular organisms",date:"600 million years ago",desc:"Multicellular organisms diversify, especially in the oceans.",temp:20,sea:72,oxygen:7,bio:30,life:2},
+{era:"CAMBRIAN",name:"An ocean of animals",date:"540 million years ago",desc:"Marine animal lineages diversify and new ecological interactions expand.",temp:22,sea:70,oxygen:11,bio:42,life:3},
+{era:"SILURIAN",name:"Land becomes green",date:"430 million years ago",desc:"Early land plants establish terrestrial ecosystems.",temp:22,sea:69,oxygen:15,bio:54,life:4},
+{era:"TRIASSIC",name:"The dinosaur era",date:"230 million years ago",desc:"Dinosaurs evolve within diverse terrestrial and marine ecosystems.",temp:25,sea:70,oxygen:16,bio:68,life:5},
+{era:"CENOZOIC",name:"Mammals diversify",date:"66 million years ago",desc:"A mass extinction reshapes ecosystems and surviving mammal lineages diversify.",temp:19,sea:71,oxygen:21,bio:75,life:5},
+{era:"PLIOCENE",name:"The human lineage",date:"3 million years ago",desc:"Human ancestors and relatives develop complex behavior and tool use.",temp:15,sea:71,oxygen:21,bio:81,life:6},
+{era:"EARLY CIVILIZATION",name:"Settlements emerge",date:"10,000 BCE",desc:"Agriculture and permanent settlement open the way for cities and societies.",temp:14,sea:71,oxygen:21,bio:84,life:7},
+{era:"INDUSTRIAL",name:"Machines transform Earth",date:"1800 CE",desc:"Industrial technology accelerates human impacts on the planet.",temp:14,sea:71,oxygen:21,bio:82,life:8},
+{era:"CONTEMPORARY",name:"A connected planet",date:"2026 CE",desc:"Technological societies and modern cities surround the globe.",temp:15,sea:71,oxygen:21,bio:78,life:9},
+{era:"SPECULATIVE FUTURE",name:"What comes next?",date:"2200 CE · hypothetical",desc:"Possible futures include advanced energy, ecological recovery and space expansion, or social and environmental crises.",temp:16,sea:72,oxygen:21,bio:76,life:10}
+];
+const get=id=>document.getElementById(id);
+const viewport=get("viewport"),canvas=get("earth");
+const scene=new THREE.Scene();scene.background=new THREE.Color(0x07111d);
+const camera=new THREE.PerspectiveCamera(44,1,.1,200);camera.position.set(0,1.6,7.7);
+const renderer=new THREE.WebGLRenderer({canvas,antialias:true});renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.outputColorSpace=THREE.SRGBColorSpace;
+const controls=new OrbitControls(camera,canvas);controls.enableDamping=true;controls.enablePan=false;controls.minDistance=3.8;controls.maxDistance=14;
+scene.add(new THREE.AmbientLight(0xa8bddd,1.25));
+const sun=new THREE.DirectionalLight(0xffe9bc,3.4);sun.position.set(5,4,7);scene.add(sun);
+const root=new THREE.Group();scene.add(root);
+const surfaceCanvas=document.createElement("canvas");surfaceCanvas.width=512;surfaceCanvas.height=256;
+const ctx=surfaceCanvas.getContext("2d");
+const surfaceTexture=new THREE.CanvasTexture(surfaceCanvas);surfaceTexture.colorSpace=THREE.SRGBColorSpace;
+const earth=new THREE.Mesh(new THREE.SphereGeometry(2.48,96,64),new THREE.MeshStandardMaterial({map:surfaceTexture,roughness:1}));root.add(earth);
+const atmosphere=new THREE.Mesh(new THREE.SphereGeometry(2.56,60,40),new THREE.MeshBasicMaterial({color:0x4188c8,transparent:true,opacity:.085,side:THREE.BackSide}));root.add(atmosphere);
+const clouds=new THREE.Mesh(new THREE.SphereGeometry(2.51,70,48),new THREE.MeshBasicMaterial({color:0xd9eef8,transparent:true,opacity:.10,wireframe:true}));root.add(clouds);
+const stars=new Float32Array(1100*3);
+for(let i=0;i<1100;i++){const a=i*2.39996323,z=1-2*(i+.5)/1100,rad=Math.sqrt(1-z*z),r=36+(i%17);stars[i*3]=Math.cos(a)*rad*r;stars[i*3+1]=z*r;stars[i*3+2]=Math.sin(a)*rad*r}
+const starGeo=new THREE.BufferGeometry();starGeo.setAttribute("position",new THREE.BufferAttribute(stars,3));
+scene.add(new THREE.Points(starGeo,new THREE.PointsMaterial({color:0xaabbd1,size:.047})));
+let position=0,playing=false,speed=4,stageIndex=-1;
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const noise=(x,y,z)=>Math.sin(x*2.41+Math.cos(z*1.92))*Math.cos(z*2.35-y*3.8)+.47*Math.sin(y*6.1+x*4.3+z*3.7)+.19*Math.cos(x*15-y*13+z*11);
+function drawPlanet(s){
+const image=ctx.createImageData(512,256);
+for(let y=0;y<256;y++)for(let x=0;x<512;x++){
+const lat=(.5-(y+.5)/256)*Math.PI,lon=((x+.5)/512-.5)*2*Math.PI;
+const px=Math.cos(lat)*Math.cos(lon),py=Math.sin(lat),pz=Math.cos(lat)*Math.sin(lon);
+const h=noise(px,py,pz),water=h<.10,polar=Math.abs(py)>.88,ridge=h>.72;
+let c;
+if(s.life===0&&s.sea===0)c=h>.1?[235,72+Math.round(40*Math.abs(h)),29]:[63,26,30];
+else if(water)c=[8,62+Math.round(12*Math.abs(h)),113+Math.round(30*Math.abs(h))];
+else if(polar)c=[217,227,228];
+else if(s.life>=4)c=ridge?[153,153,134]:[44+Math.round(h*27),110+Math.round(h*25),64];
+else c=ridge?[143,133,112]:[112,99,80];
+const k=(y*512+x)*4;image.data[k]=c[0];image.data[k+1]=c[1];image.data[k+2]=c[2];image.data[k+3]=255;
+}
+ctx.putImageData(image,0,0);surfaceTexture.needsUpdate=true;
+}
+const markers=new THREE.Group();root.add(markers);
+function refreshMarkers(s){
+while(markers.children.length){const m=markers.children.pop();m.geometry.dispose();m.material.dispose();markers.remove(m)}
+if(s.life===0)return;
+const count= s.life<4?60:s.life<7?180:350;
+const geometry=new THREE.SphereGeometry(s.life>=7?.022:.014,5,4);
+const material=new THREE.MeshBasicMaterial({color:s.life>=7?0xffd68c:s.life>=4?0x9ade80:0x76e4cb});
+const group=new THREE.InstancedMesh(geometry,material,count);
+const obj=new THREE.Object3D();let shown=0;
+for(let i=0;i<count*4&&shown<count;i++){
+const longitude=i*2.39996323,yy=1-2*((i%count)+.5)/count,rr=Math.sqrt(1-yy*yy);
+const x=Math.cos(longitude)*rr,y=yy,z=Math.sin(longitude)*rr;
+const land=noise(x,y,z)>=.10;
+if(s.life>=4&&!land)continue;if(s.life<4&&land)continue;
+obj.position.set(x*2.50,y*2.50,z*2.50);obj.scale.setScalar(s.life>=7?1.3:1);obj.updateMatrix();group.setMatrixAt(shown++,obj.matrix);
+}
+group.count=shown;group.instanceMatrix.needsUpdate=true;markers.add(group);
+}
+function setStage(i){
+i=clamp(i,0,stages.length-1);
+if(i===stageIndex)return;
+stageIndex=i;const s=stages[i];
+get("era").textContent=s.era;get("title").textContent=s.name;get("date").textContent=s.date;get("description").textContent=s.desc;
+get("temperature").textContent=s.temp+" °C";get("ocean").textContent=s.sea+"%";get("oxygen").textContent=s.oxygen+"%";get("diversity").textContent=s.bio+" / 100";
+get("microbes").textContent=s.life>=1?"Present":"Absent";get("animals").textContent=s.life>=3?"Present":"Absent";get("civilization").textContent=s.life>=7?"Present":"Absent";
+get("timeLabel").textContent=s.date;
+for(const [j,button] of [...get("stages").children].entries()){button.classList.toggle("active",i===j);button.setAttribute("aria-current",i===j?"step":"false")}
+drawPlanet(s);refreshMarkers(s);
+}
+function jump(i){position=i/(stages.length-1)*1400;get("timeline").value=String(position);setStage(i)}
+for(let i=0;i<stages.length;i++){const button=document.createElement("button");button.className="stage";button.textContent=String(i+1).padStart(2,"0")+" · "+stages[i].era;button.onclick=()=>jump(i);get("stages").appendChild(button)}
+get("timeline").addEventListener("input",e=>{position=Number(e.target.value);setStage(Math.round(position/1400*(stages.length-1)))});
+get("prev").onclick=()=>jump(stageIndex-1);get("next").onclick=()=>jump(stageIndex+1);
+get("play").onclick=()=>{playing=!playing;get("play").textContent=playing?"Ⅱ Pause":"▶ Play"};
+get("speed").onchange=e=>speed=Number(e.target.value);
+let then=performance.now();
+function animate(now){
+const dt=Math.min(.06,(now-then)/1000);then=now;
+if(playing){position+=dt*speed*4.5;if(position>=1400){position=1400;playing=false;get("play").textContent="▶ Play"}get("timeline").value=String(position);setStage(Math.round(position/1400*(stages.length-1)))}
+root.rotation.y+=dt*.055;clouds.rotation.y+=dt*.035;controls.update();renderer.render(scene,camera);requestAnimationFrame(animate)
+}
+function resize(){const w=viewport.clientWidth,h=viewport.clientHeight;camera.aspect=w/h;camera.updateProjectionMatrix();renderer.setSize(w,h,false)}
+new ResizeObserver(resize).observe(viewport);resize();jump(0);requestAnimationFrame(animate);
+</script>
+</body>
+</html>
