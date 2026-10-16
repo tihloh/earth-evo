@@ -26,6 +26,10 @@ export function configurePrecisionCamera(controls, kind = "surface", glide = DEF
   controls.enableRotate = true;
   controls.enableZoom = true;
   controls.enablePan = true;
+  // Left button moves the world; right button changes viewpoint.
+  // Match Three.js mouse action IDs: ROTATE=0, DOLLY=1, PAN=2.
+  controls.mouseButtons = {LEFT:2,MIDDLE:1,RIGHT:0};
+  controls.touches = {ONE:0,TWO:2};
   controls.autoRotate = false;
   controls.zoomToCursor = true;
   controls.rotateSpeed = kind === "surface" ? .72 : .7;
