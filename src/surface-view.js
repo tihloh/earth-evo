@@ -10,6 +10,7 @@ import {SPECIES} from "./era-ecology.js";
 import {classifyPhysicalFeature} from "./physical-features.js";
 import {createLandformLandmarks} from "./landform-view.js";
 import {returnPlanetAt} from "./zoom-transition.js";
+import {buildHorizonTerrain} from "./horizon-terrain.js";
 
 const color=(hex)=>new THREE.MeshStandardMaterial({color:hex,roughness:1,flatShading:true});
 const m={trunk:color(0x65452e),leaf:color(0x4c9860),leaf2:color(0x60ac64),
@@ -28,7 +29,7 @@ export class SurfaceView{
     this.scene=new THREE.Scene();this.scene.background=new THREE.Color(world.era<120?0x684c43:0xa1c7e4);
     this.fogMode="weather";this.weatherChoice="auto";
     this.scene.fog=new THREE.FogExp2(0xa1c7e4,.006);
-    this.camera=new THREE.PerspectiveCamera(55,1,.1,380);
+    this.camera=new THREE.PerspectiveCamera(55,1,.1,1200);
     this.camera.position.set(47,64,85);
     this.renderer=new THREE.WebGLRenderer({canvas,antialias:true});
     this.renderer.outputColorSpace=THREE.SRGBColorSpace;
@@ -50,6 +51,7 @@ export class SurfaceView{
     this.terrain=null;this.river=null;this.pointerDown=null;this.interactTargets=[];
     this.terrainChunks=new Map();this.terrainMeshes=[];
     this.waterChunks=new Map();this.landmarkChunks=new Map();this.renderRadius=3;
+    this.horizonMesh=null;this.horizonCenter=null;
     this.fogDetailRadius=1;this.lastTileUpdate=0;this.chunkCenter="";
     this.skyColor=new THREE.Color(0xa1c7e4);this.precipitation=null;
     this.setupPrecipitation();
@@ -139,6 +141,11 @@ export class SurfaceView{
   }
   setRenderDistance(radius){
     this.renderRadius=Math.max(2,Math.min(4,Math.round(radius)));
+    if(this.horizonMesh){
+      this.worldRoot.remove(this.horizonMesh);
+      this.horizonMesh.geometry.dispose();this.horizonMesh.material.dispose();
+      this.horizonMesh=null;this.horizonCenter=null;
+    }
     this.terrainChunks.forEach(t=>t.geometry.dispose());
     for(const m of this.terrainChunks.values())this.worldRoot.remove(m);
     for(const pieces of this.waterChunks.values())for(const m of pieces){this.worldRoot.remove(m);m.geometry.dispose()}
@@ -166,6 +173,7 @@ export class SurfaceView{
     this.instanced=[];this.treeMeshes=[];this.characters.clear();this.structures.clear();
     this.distantAgents=new THREE.Group();this.worldRoot.add(this.distantAgents);
     this.terrainChunks.clear();this.waterChunks.clear();this.landmarkChunks.clear();
+    this.horizonMesh=null;this.horizonCenter=null;
     this.terrainMeshes=[];
     this.streamer=new OpenWorldStreamer(this.world);
     this.streamer.update(this.controls.target.x,this.controls.target.z);
@@ -247,6 +255,19 @@ export class SurfaceView{
     mesh.userData.sharedMaterial=true;
     mesh.renderOrder=1;return mesh;
   }
+  updateHorizon(cx,cz){
+    const center=this.horizonCenter;
+    // Rebuild only after travelling at least two whole chunks.
+    if(this.horizonMesh&&center&&
+      Math.abs(center.cx-cx)<=1&&Math.abs(center.cz-cz)<=1)return;
+    if(this.horizonMesh){
+      this.worldRoot.remove(this.horizonMesh);
+      this.horizonMesh.geometry.dispose();this.horizonMesh.material.dispose();
+    }
+    this.horizonMesh=buildHorizonTerrain(this.world,cx,cz,this.renderRadius);
+    this.horizonCenter={cx,cz};
+    this.worldRoot.add(this.horizonMesh);
+  }
   updateTiles(force=false){
     const size=STREAM_CHUNK_SIZE;
     const cx=Math.floor(this.controls.target.x/size);
@@ -254,6 +275,7 @@ export class SurfaceView{
     const state=cx+","+cz+"/"+this.renderRadius;
     if(!force&&state===this.chunkCenter)return;
     this.chunkCenter=state;
+    this.updateHorizon(cx,cz);
     const floraChanged=this.streamer.update(this.controls.target.x,this.controls.target.z);
     const desired=new Map();
     for(let dx=-this.renderRadius;dx<=this.renderRadius;dx++)
