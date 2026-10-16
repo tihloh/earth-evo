@@ -65,7 +65,7 @@ export function sampleGeography(lat,lon,seed=42,seaShift=0){
   const wet=moisture>.65;
   const biome=!land?"ocean":river?"river":ice?"ice":alpine?"alpine":
     wet?"forest":moisture<.35?"dryland":"grassland";
-  return {lat,lon,elevation,seaLevel,height,land,river,moisture,temperature,biome};
+  return {lat,lon,elevation,seaLevel,height,land,river,channel,moisture,temperature,biome};
 }
 export function sampleLocal(x,z,originLat,originLon,seed=42,seaShift=0){
   const p=localToGeo(x,z,originLat,originLon);
