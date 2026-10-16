@@ -10,7 +10,11 @@ export function buildHorizonTerrain(world,cx,cz,nearRadius=3){
  const step=24,centerX=cx*chunk,centerZ=cz*chunk;
  const verts=[],colors=[];
  let tris=0;
- const inner=(nearRadius+.42)*chunk;
+ // Render only the exterior of the exact streamed-tile rectangle.
+ // A Chebyshev-distance cutout used to overlap near tiles and produced large
+ // visible rectangular plates on the shoreline in mixed-detail scenes.
+ const detailMin=-nearRadius*chunk;
+ const detailMax=(nearRadius+1)*chunk;
  function sample(x,z){
    const s=world.sample(centerX+x,centerZ+z);
    color.setHex(world.era<120?0x86584e:
@@ -32,7 +36,10 @@ export function buildHorizonTerrain(world,cx,cz,nearRadius=3){
  for(let x=-outerRadius;x<outerRadius;x+=step){
    for(let z=-outerRadius;z<outerRadius;z+=step){
      const d=Math.max(Math.abs(x+step*.5),Math.abs(z+step*.5));
-     if(d<inner||d>outerRadius)continue;
+     const midX=x+step*.5,midZ=z+step*.5;
+     const inNear=midX>=detailMin&&midX<detailMax&&
+       midZ>=detailMin&&midZ<detailMax;
+     if(inNear||d>outerRadius)continue;
      const a=sample(x,z),b=sample(x+step,z),c=sample(x,z+step),
        d1=sample(x+step,z+step);
      triangle(a,c,b);triangle(b,c,d1);
