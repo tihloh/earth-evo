@@ -10,12 +10,13 @@ Owner: **chatgpt** · Scope: `tihloh/earth-evo` · Last checkpoint: **2026-10-16
 - Compact collapsible HUD maximizing the world view.
 
 ## Status
-Current source-backed milestone: **v0.8 cross-scale zoom, nested terrain LOD and browser-tested landscape prototype**, not scientifically accurate history, conscious AI or full civilization physics.
+Current source-backed milestone: **v0.8.1 corrected water continuity, stitched terrain LOD and pointer-focused globe zoom prototype**, not scientifically accurate history, conscious AI or full civilization physics.
 
 ## Details
 - [Implementation decisions, limitations and next steps — 2026-10-16](chunks/memory-0001.md)
 - [v0.6 species chronology, weather, landforms and terrain LOD — 2026-10-16](chunks/memory-0002.md)
 - [v0.8 continuous wheel zoom, browser crash root cause and LOD — 2026-10-16](chunks/memory-0003.md)
+- [v0.8.1 screen-recording diagnosis, continuous ocean and LOD stitching — 2026-10-16](chunks/memory-0004.md)
 
 ## References
 - [Shared verified facts](../../shared/MEMORY.md)
