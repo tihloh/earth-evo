@@ -7,7 +7,7 @@ export function createOceanSurface(){
   const geometry=new THREE.PlaneGeometry(OCEAN_SURFACE_SIZE,OCEAN_SURFACE_SIZE,1,1);
   geometry.rotateX(-Math.PI/2);
   const material=new THREE.MeshStandardMaterial({
-    color:0x397e9b,roughness:.31,metalness:.06,
+    color:0x397e9b,roughness:.52,metalness:.03,
     transparent:false,depthWrite:true,side:THREE.DoubleSide
   });
   const wave={value:0};
