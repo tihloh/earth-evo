@@ -56,7 +56,7 @@ test("multiple interventions at tick zero survive saving",()=>{
 test("dates and era boundaries remain monotonic and bounded",()=>{
  assert.equal(eraAt(0),ERAS[0]);
  assert.equal(eraAt(END),ERAS.at(-1));
- for(let i=1;i<=END;i++) assert.ok(Number.isFinite(new World(1).tick+i));
+ assert.ok(ERAS.every((era,i)=>i===0||era.t>ERAS[i-1].t));
  assert.equal(new World(1).seek(-100).tick,0);
  assert.equal(new World(1).seek(9999).tick,END);
 });
