@@ -27,3 +27,16 @@
 
 ## Maintenance
 After substantial development changes, verify the code and append concise dated updates within ChatGPT's project agent namespace. Rotate to the next chunk if the new entry would exceed 6,144 UTF-8 bytes, and update the index. Never claim automatic background sync or expose private global memory here.
+
+## 2026-10-16 — v0.5 geographic consistency and open-world milestone
+
+**Confirmed change:** User supplied a screenshot of misoriented quadruped bodies and requested fixed orientation, open-world exploration with fog-of-war-style optimization, detailed globe rendering, and matching geography at ground level.
+
+- `src/creature-models.js`: quadruped torso elongated along local +Z; heads, neck and leg positions align with the `atan2(dx,dz)` forward axis.
+- `src/geography.js`: authoritative seeded latitude/longitude elevation, coastline, moisture, river channels and biome function. Global `src/simulation.js` and globe `src/renderer.js` now use it; regional `src/surface-world.js` uses the same sampler via local-to-geographic conversion. Old independent terrain generator removed.
+- `src/surface-view.js`: chunked high/low LOD geometry, fog-disguised draw limits, no fixed terrain plane; `src/open-world.js`: nearby agent/vegetation streaming, bounded snapshots and explored chunks. HUD has visibility radius control.
+- `src/camera-controls.js`: camera panning bounds extended for regional roaming. `src/app.js` preserves sea-level matching and displays coordinates/biome.
+- The map remains **synthetic procedural geography**, not authentic surveyed Earth. Pixel/triangle LOD boundaries can differ despite identical underlying samples. Cross-scale creature/global population continuity and full persistent infinite-world simulation remain future work.
+- Added and corrected simulation tests for global-to-local geographic agreement, ocean fidelity, streamed return and state restoration. Consult the latest CI run instead of assuming visual browser validation.
+
+Reference: `docs/GEOGRAPHY.md`, `docs/ARCHITECTURE.md`, `README.md`. This is project-specific memory; do not duplicate it in general memory.
