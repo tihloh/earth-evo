@@ -26,6 +26,28 @@ export function geoToLocal(lat,lon,originLat,originLon){
 export function globeUVToGeo(u,v){
   return {lon:wrapLongitude(90-u*360),lat:clamp(90-v*180,-90,90)};
 }
+// Broad volcanic edifices are terrain, not decorative cones. Stable across globe and region.
+const volcanoCenters=new Map();
+function volcanoField(X,Y,Z,seed){
+  let centers=volcanoCenters.get(seed);
+  if(!centers){
+    centers=[];
+    for(let i=0;i<5;i++){
+      const la=(-48+i*22+Math.sin(seed*.13+i*2.6)*7)*RAD;
+      const lo=(-149+i*65+Math.cos(seed*.09+i*1.4)*12)*RAD;
+      centers.push([Math.cos(la)*Math.cos(lo),Math.sin(la),Math.cos(la)*Math.sin(lo)]);
+    }
+    volcanoCenters.set(seed,centers);
+  }
+  let peak=0,crater=0;
+  for(const [x,y,z] of centers){
+    const chord=Math.hypot(X-x,Y-y,Z-z);
+    const hill=Math.exp(-Math.pow(chord/.073,2));
+    const summit=Math.exp(-Math.pow(chord/.012,2));
+    peak=Math.max(peak,hill);crater=Math.max(crater,summit);
+  }
+  return {peak,crater};
+}
 function elevationRaw(lat,lon,seed){
   const a=lat*RAD,b=lon*RAD;
   const X=Math.cos(a)*Math.cos(b),Y=Math.sin(a),Z=Math.cos(a)*Math.sin(b);
@@ -51,7 +73,8 @@ function elevationRaw(lat,lon,seed){
   const shoulder=.19*Math.max(0,Math.sin(X*36+Y*17+Z*25+seed*.02))*
     Math.max(0,belt-.10);
   const canyon=.10*Math.max(0,Math.cos(X*82-Z*73+Y*29))*Math.max(0,belt-.33);
-  return coarse+detail+uplift+shoulder-canyon;
+  const volcanic=volcanoField(X,Y,Z,seed);
+  return coarse+detail+uplift+shoulder-canyon+volcanic.peak*1.22-volcanic.crater*.20;
 }
 export function sampleGeography(lat,lon,seed=42,seaShift=0){
   lat=clamp(lat,-90,90);lon=wrapLongitude(lon);
@@ -64,6 +87,8 @@ export function sampleGeography(lat,lon,seed=42,seaShift=0){
   const temperature=27-41*latitude/90-9*Math.max(0,above);
   // One canonical elevation-to-height conversion for planet and region.
   const height=above*28;
+  const volcano=volcanoField(Math.cos(lat*RAD)*Math.cos(lon*RAD),
+    Math.sin(lat*RAD),Math.cos(lat*RAD)*Math.sin(lon*RAD),seed).peak;
   const lakeEligible=moisture>.68&&Math.sin(lat*.29+lon*.37+seed*.03)>.74;
   const lake=above>0&&above<.048&&lakeEligible;
   const land=above>0&&!lake;
@@ -82,7 +107,7 @@ export function sampleGeography(lat,lon,seed=42,seaShift=0){
   const wet=moisture>.65;
   const biome=!land?waterKind:river?"river":ice?"ice":alpine?"alpine":
     wet?"forest":moisture<.35?"dryland":"grassland";
-  return {lat,lon,elevation,seaLevel,height,land,lake,lakeEligible,coastal,waterKind,
+  return {lat,lon,elevation,seaLevel,height,volcano,land,lake,lakeEligible,coastal,waterKind,
     river,channel,moisture,temperature,biome};
 }
 export function sampleLocal(x,z,originLat,originLon,seed=42,seaShift=0){
