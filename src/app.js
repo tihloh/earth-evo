@@ -24,6 +24,12 @@ setHud("left",hudState.left);
 setHud("right",hudState.right);
 $("toggleLeft").addEventListener("click",()=>setHud("left",!hudState.left));
 $("toggleRight").addEventListener("click",()=>setHud("right",!hudState.right));
+$("fogMode").addEventListener("change",e=>{
+  if(localView)localView.setFogMode(e.target.value);
+});
+$("weatherMode").addEventListener("change",e=>{
+  if(localView)localView.setWeatherChoice(e.target.value);
+});
 $("renderDistance").addEventListener("change",e=>{
   if(localView)localView.setRenderDistance(Number(e.target.value));
 });
@@ -60,6 +66,8 @@ function enterSurface(){
   localView.visible=true;localView.speed=Number($("localSpeed").value);
   localView.setGlide(Number($("cameraGlide").value));
   localView.setRenderDistance(Number($("renderDistance").value));
+  localView.setFogMode($("fogMode").value);
+  localView.setWeatherChoice($("weatherMode").value);
   localView.resize();
   setHud("left",false);
   setHud("right",true);
@@ -88,13 +96,19 @@ function updateLocalUi(force=false){
   if(localView){
     const target=localView.controls.target;
     const p=localWorld.sample(target.x,target.z);
+    const feature=localWorld.featureAt(target.x,target.z);
     $("localLabel").textContent="Open world · "+p.lat.toFixed(3)+"°, "+
-      p.lon.toFixed(3)+"° · "+p.biome+" · "+localView.terrainChunks.size+" tiles";
+      p.lon.toFixed(3)+"° · "+feature.name+" · "+localView.terrainChunks.size+" tiles";
+    $("localTerrainInfo").textContent=
+      "Terrain: "+feature.name+" · biome: "+p.biome+
+      " · water: "+(p.waterKind||"land")+" · weather: "+localView.effectiveWeather()+
+      " · elevation: "+p.height.toFixed(1)+" simulation units";
   }
   const counts=localWorld.counts;
   $("localHumans").textContent=counts.human;$("localGrazers").textContent=counts.grazer;
   $("localPredators").textContent=counts.predator;$("localBirds").textContent=counts.bird;
   $("localBuildings").textContent=localWorld.structures.length;
+  $("localMarine").textContent=counts.marine||0;
   let agent=localWorld.agents.find(a=>a.id===inspectedId);
   const canFollow=agent?.active===true;
   $("followCreature").disabled=!canFollow;
@@ -105,10 +119,12 @@ function updateLocalUi(force=false){
   if(agent){
     const htmlSafe=str=>String(str).replace(/[&<>"']/g,char=>
       ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[char]));
-    const type=agent.type==="hut"?"Shelter":agent.type;
+    const type=agent.type==="hut"?"Shelter":
+      (agent.species?agent.species.replace(/([A-Z])/g," $1").trim():agent.type);
     const details=agent.type==="hut"?"Built structure":
       "Goal: <span class='goal'>"+htmlSafe(agent.goal)+"</span>"+
       "<br>Hunger: "+Math.round(agent.hunger)+" / 100"+
+      " · Thirst: "+Math.round(agent.thirst||0)+" / 100"+
       " · Energy: "+Math.round(agent.energy)+" / 100"+
       "<br>Health: "+Math.round(agent.health)+" / 100"+
       (agent.personality?
@@ -116,6 +132,8 @@ function updateLocalUi(force=false){
         " · Courage: "+Math.round(agent.personality.courage*100)+
         " · Sociability: "+Math.round(agent.personality.sociability*100)+
         "<br>Motivation: "+htmlSafe(agent.reason||"Exploring")+
+        (agent.style?"<br>Culture: "+htmlSafe(agent.style.period)+
+          " · clothing: "+htmlSafe(agent.style.outfit):"")+
         "<br>Survival experience: "+(agent.skill?.survival||0).toFixed(2):"")+
       (agent.type==="human"?"<br>Collected wood: "+agent.carried.toFixed(1)+
         " · Building skill: "+(agent.skill?.craft||0).toFixed(2):"");
