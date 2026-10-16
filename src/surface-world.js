@@ -4,25 +4,10 @@ import {RNG} from "./simulation.js";
 import {sampleLocal} from "./geography.js";
 
 export const REGION_SIZE = 180;
-const HALF=REGION_SIZE/2;
+// Initial spawn extent only; terrain itself is streamed without a square boundary.
 const CLAMP=(v,a,b)=>Math.max(a,Math.min(b,v));
 const TYPES=["human","grazer","predator","bird"];
 function dist(a,b){return Math.hypot(a.x-b.x,a.z-b.z)}
-export function riverX(z,seed=0){return 16+12*Math.sin(z*.029+seed*.003)+5*Math.sin(z*.087)}
-export function terrainHeight(x,z,seed=0){
-  const hills=2.3*Math.sin(x*.055+seed*.005)*Math.cos(z*.055)+
-    1.6*Math.sin(x*.12+z*.07)+.8*Math.cos(z*.17-x*.11);
-  const peaks=11*Math.exp(-((x+51)**2/650+(z+22)**2/960))+
-    15*Math.exp(-((x-61)**2/520+(z-38)**2/940))+
-    9*Math.exp(-((x+30)**2/700+(z-67)**2/790));
-  const valley=5.2*Math.exp(-(((x-riverX(z,seed))/6.3)**2));
-  // Coastal channels around small offshore islands.
-  const archipelago=-11*Math.exp(-((x+77)**2/450+(z-32)**2/900))-
-    10*Math.exp(-((x-77)**2/450+(z+64)**2/650))+
-    11*Math.exp(-((x+77)**2/58+(z-32)**2/80))+
-    12*Math.exp(-((x-77)**2/65+(z+64)**2/75));
-  return hills+peaks-valley+archipelago;
-}
 export class SurfaceWorld {
   constructor(seed=42,era=1490,lat=5,lon=0,seaShift=0){
     this.seed=(seed>>>0)||42;this.era=era;this.lat=lat;this.lon=lon;this.seaShift=seaShift;
