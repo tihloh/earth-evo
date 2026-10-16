@@ -444,9 +444,22 @@ $("loadFile").addEventListener("change",async event=>{
   }catch(error){$("status").textContent="Unable to load save: "+error.message}
   event.target.value="";
 });
+// OrbitControls can reach its minimum zoom without crossing a cursor-shifted
+// target distance. A direct wheel gesture near the globe therefore explicitly
+// completes the planet-to-surface transition.
+$("globe").addEventListener("wheel",event=>{
+  if(localActive||event.deltaY>=0)return;
+  const d=view.camera.position.distanceTo(view.controls.target);
+  if(enterSurfaceAt(d,false)||view.camera.position.length()<=4.6){
+    enterSurface();
+  }
+},{passive:true});
 function animate(now){
   const dt=Math.min(.12,(now-lastFrame)/1000);lastFrame=now;
-  if(enterSurfaceAt(view.camera.position.distanceTo(view.controls.target),localActive))enterSurface();
+  if(enterSurfaceAt(Math.min(
+    view.camera.position.distanceTo(view.controls.target),
+    view.camera.position.length()
+  ),localActive))enterSurface();
   if(localActive)updateLocalUi();
   if(playing){
     accumulator+=dt*speed;
