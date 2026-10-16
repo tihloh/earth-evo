@@ -65,8 +65,8 @@ export class SurfaceView{
     const shared=Object.values(m);
     for(const child of [...this.worldRoot.children]){
       child.traverse(obj=>{
-        if(obj.geometry)obj.geometry.dispose();
-        if(obj.material&&!shared.includes(obj.material))obj.material.dispose();
+        if(obj.geometry&&!obj.userData.sharedGeometry)obj.geometry.dispose();
+        if(obj.material&&!obj.userData.sharedMaterial&&!shared.includes(obj.material))obj.material.dispose();
       });
       this.worldRoot.remove(child);
     }
@@ -234,7 +234,7 @@ export class SurfaceView{
       }
       if(obj.userData.legs){
         for(let i=0;i<obj.userData.legs.length;i++)
-          obj.userData.legs[i].rotation.x=Math.sin(now*.010+a.id+i*Math.PI)*.20;
+          obj.userData.legs[i].rotation.x=(a.target?1:0)*Math.sin(now*.010+a.id+i*Math.PI)*.24;
       }
     }
     if(this.followAgentId!==null){
@@ -257,8 +257,8 @@ export class SurfaceView{
     this.controls.dispose();
     const shared=Object.values(m);
     for(const child of this.worldRoot.children)child.traverse?.(c=>{
-      c.geometry?.dispose();
-      if(c.material&&!shared.includes(c.material))c.material.dispose();
+      if(!c.userData.sharedGeometry)c.geometry?.dispose();
+      if(c.material&&!c.userData.sharedMaterial&&!shared.includes(c.material))c.material.dispose();
     });
     this.renderer.dispose();
   }
