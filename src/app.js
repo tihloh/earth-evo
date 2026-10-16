@@ -1,7 +1,8 @@
 import {World,W,H,END,ERAS,eraAt,dateLabel} from "./simulation.js";
 import {PlanetView} from "./renderer.js";
 import {SurfaceWorld} from "./surface-world.js";
-import {ecologyStageAt} from "./era-ecology.js";
+import {ecologyStageAt,SPECIES} from "./era-ecology.js";
+import {findScenicLocation} from "./geography.js";
 import {SurfaceView} from "./surface-view.js";
 import * as THREE from "three";
 
@@ -40,6 +41,60 @@ $("cameraGlide").addEventListener("change",e=>{
   if(localView)localView.setGlide(value);
 });
 
+function refreshSpeciesPicker(){
+  const picker=$("speciesPicker"),keep=picker.value;
+  picker.replaceChildren();
+  for(const [id,spec] of Object.entries(SPECIES)){
+    if(world.tick<spec.min||world.tick>=spec.max||id==="human"&&world.tick<1250)continue;
+    const option=document.createElement("option");
+    option.value=id;
+    option.textContent=id.replace(/([A-Z])/g," $1").trim()+" · "+spec.guild;
+    picker.append(option);
+  }
+  if([...picker.options].some(option=>option.value===keep))picker.value=keep;
+  $("summonSpecies").disabled=picker.options.length===0;
+  if(localView)localView.selectedSpecies=picker.value||null;
+}
+$("visitLandscape").addEventListener("click",()=>{
+  const kind=$("landscapePicker").value;
+  const site=findScenicLocation(kind,world.seed,world.seaShift);
+  if(!site){$("localTerrainInfo").textContent="No matching terrain found in this seed.";return}
+  focus={lat:site.lat,lon:site.lon};localWorld=null;
+  createSurface(true);
+  if(localView){
+    const y=localWorld.height(0,0);
+    localView.controls.target.set(0,y,0);
+    localView.camera.position.set(54,y+36,79);
+    localView.controls.update();localView.updateTiles(true);
+  }
+  updateLocalUi(true);
+});
+$("speciesPicker").addEventListener("change",event=>{
+  if(localView)localView.selectedSpecies=event.target.value;
+});
+$("summonSpecies").addEventListener("click",()=>{
+  if(!localView||!$("speciesPicker").value)return;
+  localView.selectedSpecies=$("speciesPicker").value;
+  localView.setAction("species");
+  document.querySelectorAll("[data-god-action]").forEach(button=>
+    button.classList.remove("selected"));
+  $("summonSpecies").classList.add("selected");
+  $("creatureInspector").textContent=
+    "Click a compatible habitat to create "+$("speciesPicker").value+".";
+});
+$("zoomCreature").addEventListener("click",()=>{
+  const a=localWorld?.agents.find(a=>a.id===inspectedId&&a.active);
+  if(!a||!localView)return;
+  const y=localWorld.height(a.x,a.z),scale=Math.max(.45,a.size||1);
+  const dist=Math.max(4.5,Math.min(16,scale*5.5));
+  const dx=Math.sin(a.rotation),dz=Math.cos(a.rotation);
+  localView.controls.target.set(a.x,y+1.5*scale,a.z);
+  localView.camera.position.set(a.x+dx*dist,y+2.2*scale+dist*.32,a.z+dz*dist);
+  localView.controls.update();
+  localView.followAgentId=a.id;
+  localView.updateTiles(true);
+  updateLocalUi(true);
+});
 function createSurface(force=false){
   if(!localActive)return;
   const era=eraAt(world.tick).t+"/"+ecologyStageAt(world.tick);
@@ -50,6 +105,7 @@ function createSurface(force=false){
     inspectedId=null;
     if(localView)localView.setWorld(localWorld);
   }
+  refreshSpeciesPicker();
   updateLocalUi(true);
 }
 function enterSurface(){
@@ -69,6 +125,7 @@ function enterSurface(){
   localView.setRenderDistance(Number($("renderDistance").value));
   localView.setFogMode($("fogMode").value);
   localView.setWeatherChoice($("weatherMode").value);
+  refreshSpeciesPicker();
   localView.resize();
   setHud("left",false);
   setHud("right",true);
@@ -113,6 +170,7 @@ function updateLocalUi(force=false){
   let agent=localWorld.agents.find(a=>a.id===inspectedId);
   const canFollow=agent?.active===true;
   $("followCreature").disabled=!canFollow;
+  $("zoomCreature").disabled=!canFollow;
   $("followCreature").textContent=localView?.followAgentId===inspectedId&&canFollow?
     "◉ Stop following":"◎ Follow selected creature";
   if(inspectedId!==null&&!agent)agent=localWorld.structures.find(a=>a.id===inspectedId);
