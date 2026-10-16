@@ -1,3 +1,4 @@
+import {sampleGeography} from "./geography.js";
 // Deterministic, simplified Earth ecology + civilization model.
 // Date labels and population units are illustrative, not measured historical data.
 export const W = 44, H = 22, END = 1600;
@@ -57,14 +58,9 @@ export class RNG{
 function createWorld(seed){
   return Array.from({length:W*H},(_,i)=>{
     const x=i%W,y=Math.floor(i/W),lat=90-(y+.5)*180/H,lon=-180+(x+.5)*360/W;
-    const a=lat*Math.PI/180,b=lon*Math.PI/180;
-    const X=Math.cos(a)*Math.cos(b),Y=Math.sin(a),Z=Math.cos(a)*Math.sin(b);
-    const v=Math.sin(X*3.9+Z*1.3+seed*.001)*.4+
-      Math.cos(Z*4.1-Y*2.3+seed*.003)*.26+
-      Math.sin(Y*4.8+X*2.9-Z*2.0)*.25+
-      Math.sin(X*11+Z*12+seed*.004)*.12;
-    const moisture=clamp(.70-.43*Math.abs(Y)+.24*Math.sin(b*2.6+Y*2.8),.10,1);
-    return {i,x,y,lat,lon,elevation:v,moisture,fertility:clamp(.56+.26*Math.cos(X*3.5+b*1.4)-Math.abs(Y)*.19,.18,1)};
+    const g=sampleGeography(lat,lon,seed);
+    return {i,x,y,lat,lon,elevation:g.elevation,moisture:g.moisture,
+      fertility:clamp(.32+.58*g.moisture-(g.height>6?.13:0),.16,1)};
   });
 }
 const TYPES=["microbe","plant","grazer","predator","hominin"];
@@ -87,7 +83,12 @@ export class World{
   }
   _log(message){this.events.unshift({tick:this.tick,id:++this.eventId,message});if(this.events.length>65)this.events.pop()}
   get temperature(){return this.tick<120?18+1250*Math.pow(1-this.tick/120,4):17+3*Math.sin(this.tick*.018)+this.warming+this.cooling}
-  get ocean(){return clamp(this.tick<120?.70*(this.tick/120):.70+this.seaShift,0,.94)}
+  get ocean(){
+    if(this.tick<120)return clamp(this.tick/120,0,1)*.65;
+    let water=0;
+    for(const cell of this.cells)if(!this.isLand(cell))water++;
+    return water/this.cells.length;
+  }
   isLand(cell){return cell.elevation>.08+this.seaShift*.5}
   localTemp(cell){return this.temperature-30*Math.abs(cell.lat)/90+2*Math.cos(cell.lon*Math.PI/110)}
   fitness(s,c){
