@@ -40,3 +40,15 @@ The region is not bounded by its original 180-unit scene. Camera panning updates
 ## Model orientation
 
 `src/creature-models.js` defines the positive local **Z** axis as the forward direction. Quadruped torsos are elongated along Z, heads/neck extend toward +Z and legs attach to either side of the Z-oriented body. `src/surface-world.js` uses `atan2(dx,dz)` to align that local forward axis with the movement vector. Tests and visual checks should keep this convention when introducing new species.
+
+## v0.8 — Nested terrain sampling and apparent continuous zoom
+
+The globe texture and displaced planetary sphere and the living-world terrain are **different LOD representations** of a single deterministic geographic elevation sampler (`src/geography.js`). Every local terrain vertex is converted to geographic latitude/longitude using `sampleLocal()`, which calls `sampleGeography()`. Higher mesh subdivisions reuse the same seed and global field at denser spatial intervals.
+
+`src/zoom-continuum.js` normalizes wheel deltas (pixels, lines, pages) and records inward zoom intent separately from OrbitControls. This ensures that reaching the planet camera's minimum orbit radius **does not prevent entering the local world**. `src/zoom-transition.js` defines hysteresis for returning to the globe, while `src/app.js` aligns the camera's geographic focus and applies a visually eased crossfade. This intentionally *fakes* one continuous zoom with two renderers, without breaking the world view's interaction model.
+
+The living-world renderer now samples **4, 8, 16, 32, or 64 subdivisions** per terrain chunk depending on distance and camera zoom, while `src/horizon-terrain.js` provides a coarse extended horizon. These are powers of two for nested vertex alignment; a complete geomorphological skirts/morph algorithm for eliminating all LOD cracks has not yet been implemented.
+
+The first headless WebGL browser test uncovered a real `TypeError: Assignment to constant variable` in the horizon triangle builder, which previously prevented entering living terrain. The triangle counter is now mutable, and `.github/workflows/browser-smoke.yml` exercises the wheel zoom to ground and back.
+
+**What this does not guarantee:** Exact surveyed geography, real Earth scale ratios, physically limitless zoom, genuine fully shared global/individual population dynamics, or pixel-identical globe raster and detailed meshes at every resolution.
