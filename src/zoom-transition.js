@@ -1,5 +1,5 @@
 // Camera thresholds are separated so wheel zoom does not oscillate between scales.
-export const PLANET_TO_SURFACE_DISTANCE = 3.64;
+export const PLANET_TO_SURFACE_DISTANCE = 4.45;
 export const SURFACE_TO_PLANET_DISTANCE = 157;
 export const ZOOM_CROSSFADE_MS = 540;
 
