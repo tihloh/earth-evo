@@ -53,6 +53,8 @@ export class SurfaceWorld {
   }
   chooseTreeSpecies(x,z){
     const biome=this.vegetationBiome(x,z);
+    // Avoid modern-looking broadleaf forests before their rough historical appearance.
+    if(this.era<1010)return this.rng.next()<.7?"cedar":"pine";
     const roll=this.rng.next();
     if(biome.shore<10&&biome.height<3)return roll<.63?"willow":"mangrove";
     if(biome.height>5)return roll<.8?"pine":"cedar";
@@ -75,7 +77,8 @@ export class SurfaceWorld {
       if(!this.isLand(x,z)||this.height(x,z)>12)continue;
       const b=this.vegetationBiome(x,z),roll=this.rng.next();
       let species;
-      if(b.shore<9)species=roll<.68?"reed":"fern";
+      if(this.era<1010)species=b.shore<9?"reed":"fern";
+      else if(b.shore<9)species=roll<.68?"reed":"fern";
       else if(b.height>4)species=roll<.63?"fern":"heather";
       else if(b.moisture<.3)species=roll<.7?"scrub":"grass";
       else species=roll<.35?"grass":roll<.61?"flower":roll<.85?"bush":"fern";
