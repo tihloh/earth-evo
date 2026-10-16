@@ -10,7 +10,7 @@ Owner: **chatgpt** · Scope: `tihloh/earth-evo` · Last checkpoint: **2026-10-16
 - Compact collapsible HUD maximizing the world view.
 
 ## Status
-Current source-backed milestone: **v0.4 exploratory prototype**, not scientifically accurate history, conscious AI or full civilization physics.
+Current source-backed milestone: **v0.5 unified procedural geography and streamed open-world prototype**, not scientifically accurate history, conscious AI or full civilization physics.
 
 ## Details
 - [Implementation decisions, limitations and next steps — 2026-10-16](chunks/memory-0001.md)
