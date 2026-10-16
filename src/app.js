@@ -226,7 +226,11 @@ document.querySelectorAll("[data-intervention]").forEach(button=>button.addEvent
   if(world.intervene(button.dataset.intervention)){setPlaying(false);refresh()}
 }));
 $("save").addEventListener("click",()=>{
-  const blob=new Blob([world.serialize()],{type:"application/json"});
+  const saved={version:2,planet:JSON.parse(world.serialize()),
+    surface:localWorld&&localSeed===world.seed&&localEra===eraAt(world.tick).t?
+      localWorld.toJSON():null,
+    focus};
+  const blob=new Blob([JSON.stringify(saved)],{type:"application/json"});
   const url=URL.createObjectURL(blob),anchor=document.createElement("a");
   anchor.href=url;anchor.download="earth-evo-"+world.seed+"-"+world.tick+".json";anchor.click();
   setTimeout(()=>URL.revokeObjectURL(url),1000);
@@ -236,7 +240,19 @@ $("load").addEventListener("click",()=>$("loadFile").click());
 $("loadFile").addEventListener("change",async event=>{
   const file=event.target.files?.[0];if(!file)return;
   try{
-    const data=await file.text();world=World.deserialize(data);
+    const data=JSON.parse(await file.text());
+    if(data.version===2){
+      world=World.deserialize(JSON.stringify(data.planet));
+      focus={lat:Number.isFinite(data.focus?.lat)&&Math.abs(data.focus.lat)<=90?data.focus.lat:5,
+        lon:Number.isFinite(data.focus?.lon)&&Math.abs(data.focus.lon)<=180?data.focus.lon:10};
+      localWorld=data.surface?SurfaceWorld.fromJSON(data.surface):null;
+      localEra=localWorld?eraAt(world.tick).t:-1;
+      localSeed=localWorld?world.seed:-1;
+      if(localActive&&localView&&localWorld)localView.setWorld(localWorld);
+    }else{
+      world=World.deserialize(JSON.stringify(data));
+      localWorld=null;localEra=-1;localSeed=-1;
+    }
     $("seed").value=String(world.seed);setPlaying(false);refresh();
     $("status").textContent="Simulation loaded.";
   }catch(error){$("status").textContent="Unable to load save: "+error.message}
