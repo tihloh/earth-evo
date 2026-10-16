@@ -29,7 +29,9 @@ test("blend easing is bounded and smooth at start and finish",()=>{
 test("zoom transition is wired to both globe and surface",()=>{
  assert.match(app,/enterSurfaceAt\(Math\.min\(/);
  assert.match(app,/\$\("globe"\)\.addEventListener\("wheel"/);
- assert.match(app,/view\.camera\.position\.length\(\)<=4\.6/);
+ assert.match(app,/continuousZoom\.wheel\(event\.deltaY,event\.deltaMode,distance\)/);
+ assert.match(app,/zoomTransitionBusy/);
+ assert.match(app,/Terrain zoom failed:/);
  assert.match(scene,/returnPlanetAt\(this\.camera\.position\.distanceTo/);
  assert.match(app,/alignSurfaceCamera\(\)/);
  assert.match(app,/alignPlanetCamera\(\)/);
@@ -43,4 +45,23 @@ test("zoom switch occurs before orbit camera bottoms out",()=>{
  assert.ok(PLANET_TO_SURFACE_DISTANCE>3.3);
  assert.equal(enterSurfaceAt(4.4),true);
  assert.equal(enterSurfaceAt(7.9),false);
+});
+
+test("scrolling continues beyond the globe limit to activate terrain LOD",async()=>{
+ const {ZoomContinuum,wheelPixels,tileSegments,globeSurfaceBlend}=
+   await import("../src/zoom-continuum.js");
+ assert.equal(wheelPixels(-3,1),-48);
+ assert.equal(wheelPixels(-1,2),-640+40);
+ const zoom=new ZoomContinuum();
+ for(let i=0;i<10;i++)zoom.wheel(-80,0,7.9);
+ assert.ok(zoom.shouldEnter(7.9));
+ zoom.reset();
+ assert.equal(zoom.shouldEnter(7.9),false);
+ assert.equal(tileSegments(0,12),64);
+ assert.equal(tileSegments(20,80),32);
+ assert.equal(tileSegments(110,80),16);
+ assert.equal(tileSegments(200,80),8);
+ assert.equal(tileSegments(400,80),4);
+ assert.equal(globeSurfaceBlend(.7),0);
+ assert.equal(globeSurfaceBlend(1),1);
 });
