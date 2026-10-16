@@ -52,10 +52,47 @@
         The 3D Earth view requires a WebGL-capable browser.
       </canvas>
       <div class="viewport-header"><div class="eyebrow">Planet Earth / Sol System</div></div>
+      <button type="button" class="enter-surface" id="enterSurface">⌕ Explore surface</button>
+      <div class="globe-select-hint" id="globeSelection">Click the globe to choose an area, then zoom in</div>
       <div class="viewport-footer"><span>Drag to rotate · Scroll to zoom</span><span id="tickText">Simulation tick 0</span></div>
+    </div>
+    <div id="surfaceViewport" hidden>
+      <canvas id="surface" aria-label="Explorable region with terrain, forests and autonomous creatures">A modern WebGL browser is required.</canvas>
+      <div class="surface-overlay top">
+        <button type="button" id="leaveSurface">← Return to planet</button>
+        <div id="localLabel" class="surface-caption">Living region</div>
+      </div>
+      <div class="surface-overlay bottom">Drag to orbit · Scroll to zoom · Click a creature to inspect · Use god powers to change the environment</div>
     </div>
   </main>
   <aside class="right" aria-label="Ecological changes and interventions">
+    <section id="localPanel" hidden>
+      <div class="eyebrow">God mode · Surface controls</div>
+      <p class="mini">Choose a power, then click the terrain to apply it. Select Inspect to examine a creature.</p>
+      <div class="god-grid" role="group" aria-label="God mode powers">
+        <button type="button" class="selected" data-god-action="inspect">⌕ Inspect</button>
+        <button type="button" data-god-action="tree">🌲 Grow forest</button>
+        <button type="button" data-god-action="rain">☂ Bring rain</button>
+        <button type="button" data-god-action="food">❀ Grow food</button>
+        <button type="button" data-god-action="grazer">♘ Add grazer</button>
+        <button type="button" data-god-action="predator">♞ Add predator</button>
+        <button type="button" data-god-action="bird">⌁ Add bird</button>
+        <button type="button" data-god-action="human">♟ Add human</button>
+        <button type="button" data-god-action="hut">⌂ Place shelter</button>
+        <button type="button" data-god-action="lightning">⚡ Lightning</button>
+      </div>
+      <div class="eyebrow subhead">Creature intelligence</div>
+      <div class="inspector" id="creatureInspector">Click a person, animal, bird or shelter to inspect its behavior.</div>
+      <div class="eyebrow subhead">Local ecosystem</div>
+      <div class="info-line"><span>Humans</span><strong id="localHumans">0</strong></div>
+      <div class="info-line"><span>Herbivores</span><strong id="localGrazers">0</strong></div>
+      <div class="info-line"><span>Predators</span><strong id="localPredators">0</strong></div>
+      <div class="info-line"><span>Birds</span><strong id="localBirds">0</strong></div>
+      <div class="info-line"><span>Shelters</span><strong id="localBuildings">0</strong></div>
+      <div class="eyebrow subhead">Autonomous activities</div>
+      <ul class="event-list" id="localEvents"></ul>
+      <p class="notice">Local figures use a lightweight needs-and-goals AI. This detail scene is a regional sandbox, not an exact zoom-in representation of all global populations. God powers currently affect the region only.</p>
+    </section>
     <div class="eyebrow">Species & lineages</div>
     <ul class="data-list" id="speciesList"></ul>
     <div class="eyebrow subhead">World events</div>
