@@ -3,6 +3,7 @@
 // serialized as lightweight snapshots, or reconstructed from the same world seed.
 import {RNG} from "./simulation.js";
 import {STREAM_CHUNK_SIZE} from "./geography.js";
+import {chooseSpecies,choosePlant} from "./era-ecology.js";
 
 export class OpenWorldStreamer {
   constructor(world){
@@ -16,36 +17,40 @@ export class OpenWorldStreamer {
     const world=this.world,size=STREAM_CHUNK_SIZE;
     const seed=(Math.imul(cx,73856093)^Math.imul(cz,19349663)^world.seed^0x42f77)>>>0;
     const rng=new RNG(seed||1);
-    if(world.era<870)return;
-    for(let i=0;i<11;i++){
-      const x=(cx+rng.next())*size,z=(cz+rng.next())*size;
-      const s=world.sample(x,z);if(!s.land)continue;
-      const r=rng.next();
-      const species=world.era<1010?(r<.65?"pine":"cedar"):
-        s.river?(r<.5?"willow":"mangrove"):s.height>6?"pine":
-        s.moisture<.34?"acacia":r<.28?"oak":r<.52?"birch":
-        r<.67?"palm":r<.84?"pine":"cedar";
-      world.trees.push({id:world.nextId++,x,z,species,
-        size:.7+rng.next()*.95,fruit:1+rng.next()*4,
-        wood:1+rng.next()*2,alive:true});
+    if(world.era<760)return;
+    if(world.era>=890){
+      for(let i=0;i<11;i++){
+        const x=(cx+rng.next())*size,z=(cz+rng.next())*size;
+        const s=world.sample(x,z);
+        if(!s.land)continue;
+        const species=choosePlant(world.era,s,rng,true);
+        if(!species)continue;
+        world.trees.push({id:world.nextId++,x,z,species,
+          size:.7+rng.next()*.95,fruit:1+rng.next()*4,
+          wood:1+rng.next()*2,alive:true});
+      }
+      for(let i=0;i<27;i++){
+        const x=(cx+rng.next())*size,z=(cz+rng.next())*size;
+        const s=world.sample(x,z);
+        if(!s.land||s.height>12)continue;
+        const selected=choosePlant(world.era,s,rng,false);
+        const later=["grass","fern","reed","flower","bush","heather","scrub"];
+        const species=world.era>=1120?(s.river?"reed":
+          later[Math.floor(rng.next()*later.length)]):
+          selected||"earlyMoss";
+        world.undergrowth.push({x,z,species,size:.5+rng.next()*.9,
+          angle:rng.next()*Math.PI*2});
+      }
     }
-    for(let i=0;i<27;i++){
+    if(world.agents.length<140&&rng.next()<.70){
       const x=(cx+rng.next())*size,z=(cz+rng.next())*size;
-      const s=world.sample(x,z);
-      if(!s.land||s.height>12)continue;
-      const roll=rng.next();
-      const species=world.era<1010?(roll<.7?"fern":"reed"):
-        s.river?"reed":s.height>5?"fern":roll<.27?"grass":
-        roll<.53?"bush":roll<.71?"flower":"heather";
-      world.undergrowth.push({x,z,species,size:.5+rng.next()*.9,
-        angle:rng.next()*Math.PI*2});
-    }
-    if(world.era>=760&&world.agents.length<125&&rng.next()<.63){
-      const x=(cx+rng.next())*size,z=(cz+rng.next())*size;
-      if(world.isLand(x,z)){
-        const choice=rng.next();
-        const type=world.era>=1010&&choice<.22?"bird":choice<.75?"grazer":"predator";
-        world.spawn(type,x,z);
+      const g=world.sample(x,z);
+      const guilds=g.land?["grazer","predator","bird"]:["marine"];
+      const possible=guilds.filter(type=>chooseSpecies(world.era,g,{next:()=>.45},type));
+      if(possible.length){
+        const type=possible[Math.floor(rng.next()*possible.length)];
+        const species=chooseSpecies(world.era,g,rng,type);
+        if(species)world.spawn(type,x,z,species);
       }
     }
   }
