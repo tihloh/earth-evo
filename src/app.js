@@ -227,7 +227,7 @@ $("globe").addEventListener("pointerup",e=>{
   const mouse=new THREE.Vector2((e.clientX-rect.left)/rect.width*2-1,
     -(e.clientY-rect.top)/rect.height*2+1);
   const ray=new THREE.Raycaster();ray.setFromCamera(mouse,view.camera);
-  const hit=ray.intersectObject(view.earth);
+  const hit=ray.intersectObject(view.planet);
   if(hit.length){
     const p=view.root.worldToLocal(hit[0].point.clone()).normalize();
     focus={lat:Math.asin(p.y)*180/Math.PI,lon:Math.atan2(p.z,-p.x)*180/Math.PI};
