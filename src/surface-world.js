@@ -27,7 +27,7 @@ export class SurfaceWorld {
     this.time=0;this.elapsed=0;this.nextId=1;this.agents=[];this.trees=[];
     this.structures=[];this.events=[];this.rain=0;this.fertility=1;
     this.village={x:-12,z:-14,wood:0,food:14};
-    this.lastBirth=0;
+    this.lastBirth=0;this.lastSeed=0;
     this.populate();
   }
   height(x,z){return terrainHeight(x,z,this.terrainSeed)}
@@ -52,7 +52,11 @@ export class SurfaceWorld {
     if(type==="bird"&&this.era<1010)return null;
     const a={id:this.nextId++,type,x,z,rotation:this.rng.between(0,Math.PI*2),
       hunger:this.rng.between(0,35),energy:this.rng.between(40,100),health:100,
-      age:0,goal:"exploring",target:null,decision:0,carried:0,food:0,active:true,altitude:0};
+      age:0,goal:"exploring",reason:"Curious about the surroundings",
+      personality:{curiosity:this.rng.between(0,1),courage:this.rng.between(0,1),
+        sociability:this.rng.between(0,1),diligence:this.rng.between(0,1)},
+      memory:{lastFood:null,lastDanger:null},skill:{survival:0,craft:0},
+      target:null,decision:0,carried:0,food:0,active:true,altitude:0};
     this.agents.push(a);return a;
   }
   populate(){
@@ -83,43 +87,67 @@ export class SurfaceWorld {
     }
     return found;
   }
-  destination(a,p,goal){a.target={x:p.x,z:p.z,id:p.id??null};a.goal=goal}
+  destination(a,p,goal){
+    a.target={x:p.x,z:p.z,id:p.id??null};a.goal=goal;
+    a.reason=({
+      fleeing:"A nearby predator is dangerous",
+      "escaping danger":"Survival is more important than other goals",
+      foraging:"Hunger motivates finding ripe fruit",
+      "collecting food":"Gathering food to satisfy hunger",
+      hunting:"Tracking nearby prey to survive",
+      grazing:"Seeking grass and safe feeding grounds",
+      "gathering timber":"Collecting materials for shelters",
+      "delivering timber":"Returning collected wood to the community",
+      "building shelter":"Enough shared material is available to construct shelter",
+      socializing:"Companionship and cooperative relationships matter",
+      flying:"Searching for food and navigating the sky",
+      patrolling:"Searching the surroundings for prey",
+      wandering:"Exploring the surrounding territory",
+      exploring:"Curiosity drives the search for new territory"
+    })[goal]||"Exploring the environment";
+  }
   randomDestination(a,goal="wandering"){
     this.destination(a,this.location({x:a.x,z:a.z},24),goal);
   }
   decide(a){
     if(!a.active)return;
     if(a.type==="grazer"||a.type==="bird"){
-      const predator=this.nearest(a,"predator",()=>true,a.type==="bird"?12:19);
+      const predator=this.nearest(a,"predator",()=>true,a.type==="bird"?12:16+(1-a.personality.courage)*7);
       if(predator){
+        a.memory.lastDanger={x:predator.x,z:predator.z,time:this.time};
         const dx=a.x-predator.x,dz=a.z-predator.z,d=Math.max(.01,Math.hypot(dx,dz));
         this.destination(a,{x:CLAMP(a.x+dx/d*27,-83,83),z:CLAMP(a.z+dz/d*27,-83,83)},"fleeing");
         return;
       }
-      const tree=this.nearest(a,"tree",t=>t.fruit>.5,30);
+      const remembered=a.memory.lastFood&&this.trees.find(t=>t.id===a.memory.lastFood&&t.alive&&t.fruit>.5);
+      const tree=remembered&&dist(a,remembered)<35?remembered:
+        this.nearest(a,"tree",t=>t.fruit>.5,30);
       if(a.hunger>38&&tree){this.destination(a,tree,"foraging");return}
       if(!a.target||this.rng.next()<.12)this.randomDestination(a,a.type==="bird"?"flying":"grazing");
       return;
     }
     if(a.type==="predator"){
-      const prey=this.nearest(a,"grazer",()=>true,46);
+      const prey=this.nearest(a,"grazer",()=>true,40+10*a.personality.courage);
       if(a.hunger>23&&prey){this.destination(a,prey,"hunting");return}
       if(!a.target||this.rng.next()<.1)this.randomDestination(a,"patrolling");
       return;
     }
     // Human goal-based behavior: danger > food > shelter materials > building > socializing.
-    const threat=this.nearest(a,"predator",()=>true,14);
+    const threat=this.nearest(a,"predator",()=>true,12+(1-a.personality.courage)*8);
     if(threat){
+      a.memory.lastDanger={x:threat.x,z:threat.z,time:this.time};
       const dx=a.x-threat.x,dz=a.z-threat.z,d=Math.max(.01,Math.hypot(dx,dz));
       this.destination(a,{x:CLAMP(a.x+dx/d*23,-85,85),z:CLAMP(a.z+dz/d*23,-85,85)},"escaping danger");
       return;
     }
-    const tree=this.nearest(a,"tree",t=>t.fruit>1||t.wood>0,56);
+    const known=a.memory.lastFood&&this.trees.find(t=>t.id===a.memory.lastFood&&t.alive&&t.fruit>.5);
+    const tree=known&&dist(a,known)<55?known:this.nearest(a,"tree",t=>t.fruit>1||t.wood>0,56);
     if(a.hunger>42&&a.food<1&&tree&&tree.fruit>0){
       this.destination(a,tree,"collecting food");return;
     }
     if(a.hunger>40&&a.food>0){a.food--;a.hunger=CLAMP(a.hunger-50,0,100);a.goal="eating";return}
-    if(this.era>=1310&&a.carried<2&&tree&&tree.wood>.3){
+    if(this.era>=1310&&a.carried<2&&tree&&tree.wood>.3&&
+      (a.personality.diligence>.22||this.village.wood<3)){
       this.destination(a,tree,"gathering timber");return;
     }
     if(a.carried>=2){this.destination(a,this.village,"delivering timber");return}
@@ -127,7 +155,8 @@ export class SurfaceWorld {
       this.destination(a,this.village,"building shelter");return;
     }
     const other=this.nearest(a,"human",()=>true,35);
-    if(other&&this.rng.next()<.3){this.destination(a,other,"socializing");return}
+    if(other&&this.rng.next()<.1+.45*a.personality.sociability){
+      this.destination(a,other,"socializing");return}
     if(!a.target||this.rng.next()<.16)this.randomDestination(a,"exploring");
   }
   move(a,dt){
@@ -151,16 +180,20 @@ export class SurfaceWorld {
   onArrival(a,target){
     if(a.goal==="hunting"&&target&&target.type==="grazer"&&target.active&&dist(a,target)<3){
       target.health=0;target.active=false;a.hunger=CLAMP(a.hunger-60,0,100);a.energy=CLAMP(a.energy+26,0,100);
+      a.skill.survival=CLAMP(a.skill.survival+.12,0,10);
       this.log("Predator #"+a.id+" hunted grazer #"+target.id);return;
     }
     if((a.goal==="foraging"||a.goal==="collecting food")&&target?.fruit>0){
       const n=Math.min(target.fruit,a.type==="human"?2:1.5);target.fruit-=n;
+      a.memory.lastFood=target.id;
+      a.skill.survival=CLAMP(a.skill.survival+.025,0,10);
       if(a.type==="human"){a.food+=n;a.goal="eating";a.hunger=Math.max(0,a.hunger-26)}
       else a.hunger=Math.max(0,a.hunger-48);
       return;
     }
     if(a.goal==="gathering timber"&&target?.wood>0){
       const n=Math.min(2,target.wood);target.wood-=n;a.carried+=n;
+      a.skill.craft=CLAMP(a.skill.craft+.06,0,10);
       if(target.wood<=0&&target.fruit<=0)target.alive=false;
       return;
     }
@@ -176,6 +209,7 @@ export class SurfaceWorld {
       const pz=CLAMP(this.village.z+Math.sin(angle)*radial,-80,80);
       if(this.isLand(px,pz)){
         this.structures.push({id:this.nextId++,x:px,z:pz,type:"hut",progress:1});
+        a.skill.craft=CLAMP(a.skill.craft+.25,0,10);
         this.log("Human #"+a.id+" built a new shelter");
       }
       return;
@@ -208,6 +242,15 @@ export class SurfaceWorld {
       this.move(a,dt);
       if(a.type==="bird")a.altitude=3+2*Math.sin(a.age*3+a.id);
       // Small autonomous population dynamics. Births depend on survival and resource access.
+    }
+    if(this.time-this.lastSeed>18&&this.trees.length<500&&this.era>=870){
+      this.lastSeed=this.time;
+      const parents=this.trees.filter(t=>t.alive&&t.fruit>3);
+      if(parents.length){
+        const parent=this.rng.pick(parents),p=this.location(parent,9);
+        const young=this.spawnTree(p.x,p.z);
+        if(young)this.log("A new tree grew from seed dispersal");
+      }
     }
     if(this.time-this.lastBirth>32&&this.agents.length<170){
       this.lastBirth=this.time;
