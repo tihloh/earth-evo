@@ -76,7 +76,14 @@ function updateLocalUi(force=false){
       "<br>Hunger: "+Math.round(agent.hunger)+" / 100"+
       " · Energy: "+Math.round(agent.energy)+" / 100"+
       "<br>Health: "+Math.round(agent.health)+" / 100"+
-      (agent.type==="human"?"<br>Collected wood: "+agent.carried.toFixed(1):"");
+      (agent.personality?
+        "<br>Curiosity: "+Math.round(agent.personality.curiosity*100)+
+        " · Courage: "+Math.round(agent.personality.courage*100)+
+        " · Sociability: "+Math.round(agent.personality.sociability*100)+
+        "<br>Motivation: "+htmlSafe(agent.reason||"Exploring")+
+        "<br>Survival experience: "+(agent.skill?.survival||0).toFixed(2):"")+
+      (agent.type==="human"?"<br>Collected wood: "+agent.carried.toFixed(1)+
+        " · Building skill: "+(agent.skill?.craft||0).toFixed(2):"");
     out.innerHTML="<strong>"+htmlSafe(type)+" #"+agent.id+"</strong><br>"+details;
   }else out.textContent="Click a person, animal, bird or shelter in Inspect mode to observe its behavior.";
   const list=$("localEvents");list.replaceChildren();
