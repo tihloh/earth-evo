@@ -60,6 +60,7 @@ export class SurfaceWorld {
     this.agents.push(a);return a;
   }
   populate(){
+    this.village=this.location({x:-12,z:-14},25);this.village.wood=0;this.village.food=14;
     const trees=this.era>=870?280:0;
     for(let i=0;i<trees;i++){const p=this.location({x:0,z:0},85);this.spawnTree(p.x,p.z)}
     if(this.era>=760){
@@ -73,8 +74,10 @@ export class SurfaceWorld {
     }
     if(this.era>=1310){
       this.village.wood=9;
-      this.structures.push({id:this.nextId++,x:-17,z:-13,progress:1,type:"hut"});
-      this.structures.push({id:this.nextId++,x:-8,z:-12,progress:1,type:"hut"});
+      for(let i=0;i<2;i++){
+        const p=this.location(this.village,8);
+        this.structures.push({id:this.nextId++,x:p.x,z:p.z,progress:1,type:"hut"});
+      }
     }
     this.log("The region begins its autonomous life");
   }
