@@ -537,7 +537,7 @@ export class SurfaceView{
         this.controls.target.add(delta);this.camera.position.add(delta);
       }else this.followAgentId=null;
     }
-    this.controls.update();confineSurfaceTarget(this.controls,this.camera,10000);
+    this.controls.update();confineSurfaceTarget(this.controls,this.camera,10000,500);
     this.renderer.render(this.scene,this.camera);
     requestAnimationFrame(this.frame);
   }
