@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import {OrbitControls} from "three/addons/controls/OrbitControls.js";
 import {W,H} from "./simulation.js";
-import {sampleGeography,globeUVToGeo,globeColor,SEA_LEVEL} from "./geography.js";
+import {sampleGeography,globeUVToGeo,globeColor,globeReliefRadius,SEA_LEVEL} from "./geography.js";
 import {configurePrecisionCamera,setCameraGlide} from "./camera-controls.js";
 
 export class PlanetView {
@@ -52,7 +52,7 @@ export class PlanetView {
     for(let i=0;i<positions.count;i++){
       const coord=globeUVToGeo(uv.getX(i),uv.getY(i));
       const s=sampleGeography(coord.lat,coord.lon,world.seed,world.seaShift);
-      const radius=2.35+(s.land?Math.min(.115,Math.max(0,s.height)*.0028):0);
+      const radius=globeReliefRadius(s);
       const vx=positions.getX(i),vy=positions.getY(i),vz=positions.getZ(i);
       const len=Math.hypot(vx,vy,vz)||1;
       positions.setXYZ(i,vx*radius/len,vy*radius/len,vz*radius/len);
