@@ -24,6 +24,7 @@ function mesh(root,shape,c,x,y,z,sx=1,sy=1,sz=1,rz=0,rx=0,ry=0){
   const m=new THREE.Mesh(geos[shape],mat(c));root.add(m);
   m.position.set(x,y,z);m.scale.set(sx,sy,sz);
   m.rotation.set(rx,ry,rz);m.castShadow=true;
+  m.userData.sharedGeometry=true;m.userData.sharedMaterial=true;
   return m;
 }
 function human(a){
