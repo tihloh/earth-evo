@@ -19,6 +19,7 @@ Current source-backed milestone: **v0.8.1 corrected water continuity, stitched t
 - [v0.8.1 screen-recording diagnosis, continuous ocean and LOD stitching — 2026-10-16](chunks/memory-0004.md)
 
 - [Unreal Engine 5 desktop migration architecture plan — 2026-10-17](chunks/memory-0005.md)
+- [Finalized hybrid Earth geology architecture and UE5 Sprint 01 — 2026-10-17](chunks/memory-0006.md)
 
 ## References
 - [Shared verified facts](../../shared/MEMORY.md)
