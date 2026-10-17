@@ -7,7 +7,13 @@
 
 ## Desktop Unreal Engine migration
 
-The existing Three.js app remains available. An Unreal Engine 5 Windows desktop migration is **planned but not implemented**. See [UE5 Migration Plan](docs/UNREAL-MIGRATION-PLAN.md) for the proposed cross-scale planet architecture, technical module mapping, development phases, proof-of-concept gates, and scientific/performance limitations.
+The existing Three.js app remains available. The Unreal Engine 5 Windows desktop migration has a **finalized hybrid geography architecture and ready-to-start first development sprint, but no Unreal project has been implemented yet**.
+
+- [Hybrid UE5 Architecture — measured modern Earth + reconstructed geological history + procedural evolution](docs/UE5-HYBRID-ARCHITECTURE.md)
+- [Sprint 01 — 10-day backlog, deliverables and acceptance tests](docs/UE5-SPRINT-01.md)
+- [Full UE5 Migration Roadmap](docs/UNREAL-MIGRATION-PLAN.md)
+
+The hybrid plan does not claim modern surveyed mountains are authentic prehistoric mountains. All geographic source datasets are time/versioned and carry provenance and uncertainty labels.
 
 ## Run it
 
