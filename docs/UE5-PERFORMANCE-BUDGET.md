@@ -6,17 +6,26 @@
 
 The user wants Earth Evo to be **about as lightweight to run as Steam Dota 2**, while still simulating an evolving globe, terrain, wildlife and settlements. This is an engineering priority, not a promise of identical actual resource usage. Dota 2's Steam **4 GB minimum system RAM requirement** is *not* a measurement of Dota's peak game-process RAM, and the complexity of planet-scale evolution is different from a bounded multiplayer arena.
 
-**Reference PC:** Windows desktop, Intel Core i5-9400 (6 cores/6 threads), **32 GB DDR4**, **AMD Radeon RX 5500 XT** (VRAM variant not yet confirmed, may be 4 GB or 8 GB), SSD. **The shipped game** must be benchmarked separately from the Unreal Editor, shader compilation and packaging.
+**Confirmed reference PC:** Windows desktop, Intel Core i5-9400 (6 cores/6 threads), **32 GB DDR4**, **AMD Radeon RX 5500 XT 4 GB VRAM**, SSD. **The shipped game** must be benchmarked separately from the Unreal Editor, shader compilation and packaging.
 
 ### Presets and first performance targets
 
 | Shipping preset | Purpose | 1080p frame rate | Process RAM budget | Approximate dedicated VRAM budget | Notes |
 | --- | --- | --- | --- | --- | --- |
 | **Performance** (default on RX 5500 XT 4 GB) | Smooth navigation / low overhead | **60 FPS target**, allow player-selected 30 FPS cap | **Prefer ≤6 GB, aim ≤8 GB peak** | **Aim ≤3 GB** on 4 GB card | Limited active actors, reduced materials/reflections, 75–85% internal render resolution with spatial upscaling if useful |
-| **Balanced** (RX 5500 XT 8 GB after benchmarking) | More realistic close-up ecosystems | **60 FPS target** in representative region | **Aim ≤8 GB peak** | **Aim ≤5 GB** on 8 GB card | Higher vegetation/animal/terrain visual density |
-| **Quality** | Optional for stronger GPUs | 30–60 FPS user-controlled | Separate measured budget | Hardware-dependent | Enhanced water, shadows, foliage/lighting |
+| **Balanced** (optional; must benchmark on 4 GB GPU) | Slightly improved close-up visuals | **30–60 FPS subject to measurements** | **Aim ≤8 GB peak** | **Remain ≤3 GB on this machine** | Only increase individual settings where verified to fit; never assume 8 GB hardware |
+| **Quality** | For stronger GPUs in future | Hardware-dependent | Separate measured budget | Hardware-dependent | Enhanced water, shadows, foliage/lighting; not recommended as default on RX 5500 XT 4 GB |
 
 **Target vs gate:** these are aspirational first benchmarks, not minimum spec guarantees or a scientifically measured estimate. Sprint 01 reports actual timings/memory; failing to reach a budget means lower the default quality or redesign the hotspot, not publish an untrue “Dota 2 performance” label. Users may choose a 30 FPS cap for lower power/heat.
+
+### Locked RX 5500 XT **4 GB** baseline — conservative first preset
+
+- **VRAM:** target **≤2.5 GB typical, never intentionally budget above 3.0 GB peak dedicated VRAM** for the packaged game; leave approximately **1 GB headroom** for OS/display driver, render targets, transient allocations and other processes. These are engineering allocations, not verified measurements.
+- **Texture streaming:** start with **~1,024–1,280 MiB texture-pool cap**, profile before adjusting; the pool is only *one component* of total VRAM. No large uncompressed 4K terrain/animal/vegetation textures on this preset.
+- **Rendering:** 1920×1080 display output at **75–85% internal resolution** initially; compare practical TAA/FXAA or other economical AA/upscaling options after measuring. Hardware ray tracing, Lumen GI/reflections and cinematic virtual-shadow/water settings are **off by default**.
+- **Frame target:** build toward **60 FPS** in well-optimized views, with **30 FPS stable fallback** in demanding local ecosystems. Record frame pacing and 1%-low results; do not sacrifice world-state correctness.
+- **Actors:** only a bounded near-camera set of richly animated creatures; start with **≤20 full-skeletal agents in the representative performance scene** as a tunable test budget, not an absolute design limit. Distant life becomes aggregates or instanced animation proxies.
+- **Measurements:** package a Windows build and log real GPU memory usage, including spikes while zooming orbit→ground and while rendering coastline, forests, water and settlements. Revise all numbers based on that evidence.
 
 ## Architecture choices required to approach the target
 
@@ -40,7 +49,7 @@ Benchmark a **packaged Development/Shipping game** (never use UE Editor as the r
 - Scenarios: (A) global Earth orbit, (B) fast globe→ground zoom, (C) coastal forest/river/settlement with representative life, (D) fast 10 km local fly/pan, (E) 30-minute accelerated ecological simulation, (F) save/reload/return to prior location.
 - Capture **average FPS, 1%-low FPS, median/p95 frame time, game-thread/render-thread/GPU timings, per-process peak committed/working-set RAM, dedicated/shared VRAM, SSD read/streaming spikes**, time-to-first-frame and engine initialization.
 - Sprint 01 is a baseline-only gate, not a guarantee of 60 FPS in a fully populated world. At milestones for living terrain, compare the **same scene on Performance preset** with Dota 2 captured on the same PC at the same resolution/preset, noting that workload and art style differ.
-- Provisional target: **60 FPS average** and near 16.7 ms per rendered frame in most tested Performance scenes; **≤8 GB game process RAM peak**; dedicated VRAM headroom for a possible 4 GB RX 5500 XT (initial goal ≤3 GB); avoid obvious hitches >100 ms when zooming/streaming. Reassess budgets with measured content density.
+- Provisional target: **60 FPS average** and near 16.7 ms per rendered frame in most tested Performance scenes; **≤8 GB game process RAM peak**; dedicated VRAM headroom for the **confirmed 4 GB RX 5500 XT** (initial goal ≤3 GB peak, preferably ≤2.5 GB typical); avoid obvious hitches >100 ms when zooming/streaming. Reassess budgets with measured content density.
 - If performance falls below target, simplify first: cloud/fog cost, water reflections, foliage/character draw calls, shadow passes, geometry density, active agents, terrain generation. **Never reduce geographic correctness or lose persistent world state** as a performance shortcut.
 - Disk/build costs: UE **editor/toolchain** are substantially larger than the shipped product. Keep runtime download/install size separate from development storage, set a project-specific size budget once measured; do not imply this must equal Dota 2's 60 GB store requirement.
 
@@ -52,7 +61,7 @@ Extend **H07–H09**: always profile coarse globe, coarse/fine terrain transitio
 
 ## Known unknowns
 
-- Confirm **RX 5500 XT 4 GB vs 8 GB** before setting texture pool size; 4 GB demands stricter budgets.
+- **VRAM capacity confirmed: RX 5500 XT 4 GB.** Verify exact driver version, shared-memory reporting and actual dedicated-memory use on the development PC.
 - Confirm **free SSD space** and whether this PC will build Unreal locally or GitHub Actions will run on a separately provisioned Windows Unreal build runner.
 - Dota 2 Steam minimum: https://store.steampowered.com/app/570/Dota_2/ (minimum specs, *not measured gameplay*).
 - Unreal Lumen performance and Low scalability: https://dev.epicgames.com/documentation/unreal-engine/lumen-performance-guide-for-unreal-engine
