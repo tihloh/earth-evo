@@ -2,7 +2,7 @@
 
 **Decision:** APPROVED DESIGN DIRECTION · 2026-10-17  
 **Scope:** Windows-first Unreal Engine 5 desktop evolution simulator, modern measured Earth + reconstructed geological epochs + procedural physical evolution.  
-**State:** Architecture finalized for Sprint 01; **no UE5 source project, dataset bundle, plugin integration or playable executable has been built**. See [Sprint 01](UE5-SPRINT-01.md) and the wider [UE5 Migration Plan](UNREAL-MIGRATION-PLAN.md).
+**Performance priority:** Dota 2–class resource efficiency on i5-9400 / 32 GB / RX 5500 XT. See [P-001 performance budget](UE5-PERFORMANCE-BUDGET.md). The shipped game is the benchmark, not the UE5 Editor.\n\n**State:** Architecture finalized for Sprint 01; **no UE5 source project, dataset bundle, plugin integration or playable executable has been built**. See [Sprint 01](UE5-SPRINT-01.md) and the wider [UE5 Migration Plan](UNREAL-MIGRATION-PLAN.md).
 
 ## 1. Non-negotiable principles
 
@@ -13,6 +13,10 @@
 5. **Graceful source fallback**: missing data downgrades confidence and produces clearly classified procedural fill. Never silently display present-day coastlines for a prehistoric epoch.
 6. **Offline procedural mode** works without Cesium ion, Epic cloud, or remote imagery. Dataset-driven modern-Earth mode uses **locally preprocessed licensed source tiles**. Cesium may be an adapter for present-day reference imagery, not the authoritative historical world.
 7. **Visual consistency + provenance**: every globe and regional mesh calls the same geographic sampler and tile ID at the same epoch, seed, edits and source versions. Differences in screen resolution may exist; a coastline or height cannot change simply because the camera crossed an LOD boundary.
+
+### Performance decision P-001
+
+The user prioritizes **Dota 2–class PC accessibility** over cinematic visual features. For the reference i5-9400 / Radeon RX 5500 XT, require a **Performance preset** with no hardware ray tracing and no Lumen by default. Target 1080p/60 FPS in representative gameplay, with initial ≤8 GB packaged-game RAM and GPU budgets adapted to the 4 GB or 8 GB card variant; **these are goals, not tested achievements**. Use cheap planet LOD, only nearby detailed organisms, scalable water, instanced vegetation, background population aggregates and measured frame/VRAM headroom. See [performance contract P-001](UE5-PERFORMANCE-BUDGET.md). The exact engine version and low-end renderer path must be benchmarked, not assumed.
 
 ## 2. Geographic/time conventions (locked)
 
