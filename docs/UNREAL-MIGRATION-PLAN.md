@@ -1,6 +1,8 @@
 # Earth Evo — Unreal Engine 5 Desktop Migration Plan
 
-**Status:** Architecture proposal, 2026-10-17. **No Unreal Engine migration has been implemented yet.**
+**Status:** Hybrid geography architecture **selected and finalized for the first sprint**, 2026-10-17. **No Unreal Engine migration has been implemented yet.**
+
+**Decision records:** [Hybrid world architecture H-001](UE5-HYBRID-ARCHITECTURE.md) · [Sprint 01, 10 working days](UE5-SPRINT-01.md). These are authoritative where they supersede preliminary options below.
 
 **Source prototype:** [tihloh/earth-evo](https://github.com/tihloh/earth-evo), `main`, v0.8.1 (Three.js browser prototype). Keep it working while creating the Unreal version.
 
@@ -12,11 +14,11 @@ Foundational rule: **one authoritative geography + simulation state**. Orbital g
 
 Do not promise literal infinite detail, full scientific accuracy, genuine consciousness, or automatic photorealism. Fidelity increases in deliberate, measurable milestones.
 
-### Default choices pending review
+### Finalized direction (engine version and licensing still subject to feasibility checks)
 
 - Use a supported **UE5 stable release** verified with all required plugins, then pin the minor version for reproducible builds. C++ owns world simulation and deterministic algorithms; Blueprints/Data Assets own authoring and iteration.
 - **Separate repository proposed:** `tihloh/earth-evo-ue5`. Keep the web prototype as reference and regression oracle. Do not replace/delete the existing `earth-evo` project. Share data schemas and golden sample fixtures, not renderer code.
-- **Initial planet mode:** fictional seeded evolutionary planet, improving the existing simulator's procedural rules. Modern authentic Earth and reconstructive paleogeography are **later optional datasets/modes**; Cesium's modern datasets cannot automatically represent prehistoric continents or a changing synthetic world.
+- **Chosen HYBRID planet mode:** present-day measured Earth (NOAA ETOPO 2022 reference tiles), reconstructed geological epochs (EarthByte/GPlates sources within verified coverage), and time-evolving procedural geology filling unsupported regions and deep geological time. Each tile exposes evidence class, age, datum, uncertainty and source version; modern DEMs are **not** remapped backward as faux paleo topography. Cesium is optional for modern reference viewing.
 - Use **metric physical units:** 1 Unreal unit = 1 cm, elevations in meters, globe ellipsoid/planet radius in meters, creature assets in corresponding meters. Default present-day reference planet: WGS84-like geodetic globe (Earth mean radius ~6,371 km). Never extend the web prototype's artificial `0.018 degrees per local unit` scale into UE.
 - No cloud service required for the first desktop playable slice; local saves must work offline.
 
@@ -48,9 +50,9 @@ World Simulation (C++; authoritative seed + time + state)
 
 ### Accurate geography and time
 
-- First milestone: deterministic synthetic geography with convincing mountain ranges, valleys, ridges, canyons, volcanoes, beaches, connected lakes, rivers, estuaries and watersheds.
+- First sprint: hybrid source contract, real-data *bounded modern* DEM fixture, verified dated paleo fixture and synthetic fallback; render one coarse globe and a matching fine tile in real metric units. Later environment milestones include convincing mountain ranges, valleys, ridges, canyons, volcanoes, beaches and hydrologically connected water.
 - Establish **height in meters**, slope, temperature, rainfall, substrate, biome, drainage direction, flow accumulation, erosion state, coast distance and ocean depth as world data. Rivers should flow downhill through consistent drainage networks; volcanoes are kilometer-scale landforms, not independent props.
-- Later choose one or both **authentic Earth datasets** (licensed height/bathymetry, coastlines) and **time-indexed plate/continent reconstructions**. Validate data provenance, year availability, interpolation and geography changes; do not overlay current Cesium imagery on prehistoric seas.
+- **Hybrid datasets are now required design inputs**, not optional future mode choices: measured modern Earth topography/bathymetry, dated plate/continent reconstructions where valid, and scientifically labeled procedural gaps. Validate provenance, geographic/time availability, vertical datum, distribution rights and uncertainty. Do not overlay current Cesium imagery on prehistoric seas.
 - Cesium for Unreal is **optional** for georeferencing, modern real-Earth reference mode or modern datasets (including local 3D Tiles). Do **not** make Cesium ion connectivity a requirement for a self-contained fictional procedural planet.
 
 ### Biomes, weather and water
