@@ -5,6 +5,10 @@
 
 **Current status: v0.8.1 — continuous globe-to-ground zoom with corrected ocean surfaces, river/lake boundaries and crack-free stitched terrain LOD.** It includes a navigable planetary globe, a close-up procedural regional world with autonomous creatures, and a simplified worldwide ecosystem/civilization simulation. It is **not** a physically accurate 4.54-billion-year reconstruction, a full Darwinian genetics simulator, or a Civilization-scale strategy game.
 
+## Desktop Unreal Engine migration
+
+The existing Three.js app remains available. An Unreal Engine 5 Windows desktop migration is **planned but not implemented**. See [UE5 Migration Plan](docs/UNREAL-MIGRATION-PLAN.md) for the proposed cross-scale planet architecture, technical module mapping, development phases, proof-of-concept gates, and scientific/performance limitations.
+
 ## Run it
 
 **You don't need to install a JavaScript framework or database.**
