@@ -3,7 +3,7 @@
 **Status:** Ready for development; **not started**.  
 **Timebox:** 10 working days / 2 weeks (experienced Unreal C++ developer; adjust after machine/plugin inspection).  
 **Strategy:** Dedicated UE5 Windows desktop codebase, new `earth-evo-ue5` repo **proposed, not yet created**. Preserve the browser repo intact.  
-**Reference:** [Hybrid Architecture H-001](UE5-HYBRID-ARCHITECTURE.md) · [Migration Plan](UNREAL-MIGRATION-PLAN.md).
+**Reference:** [Hybrid Architecture H-001](UE5-HYBRID-ARCHITECTURE.md) · [Dota 2–class performance contract P-001](UE5-PERFORMANCE-BUDGET.md) · [Migration Plan](UNREAL-MIGRATION-PLAN.md).
 
 ## Sprint objective
 
@@ -11,11 +11,13 @@ Prove the essential claim: **one Earth location has one stable meter-scale geogr
 
 Not in sprint: realistic animals, animated people, PCG biomes, full historical reconstruction, global rivers, high-end ocean waves, high-fidelity reflective water, complete planet quadtree streaming, 5×5 km explorable territory, or seamless production-quality orbit-to-ground flight. Those follow the core geography proof.
 
+**Hardware performance gate:** shipping game targets **1080p/60 FPS**, **≤8 GB process RAM**, and a VRAM-safe preset on the user's i5-9400 / RX 5500 XT. These are unverified *targets*; Sprint 01 must obtain measurable baseline frame timing and memory on a real packaged UE5 executable before claiming success.
+
 ### Prioritized sprint backlog
 
 | ID | Target | Work & concrete output | Dependency | Estimate | Done when |
 | --- | --- | --- | --- | --- | --- |
-| H01 | D1 | Create pinned UE5 **C++** repository/project, Git LFS, UE ignore patterns and portable README. Record UE/SDK/toolchain versions and baseline PC/GPU. | None | 1 d | Editor project opens on Windows; clean clone builds; `Binaries/`, `DerivedDataCache/`, `Intermediate/`, `Saved/` excluded |
+| P01 | D1 | Establish baseline Performance preset (Lumen/hardware RT off), hardware VRAM probe, stat overlay and packaged-game profiling harness. | H01 (same day) | 0.5 d embedded within H01/H09 | FPS/frame-time/RAM/VRAM measured on i5-9400/RX 5500 XT; target budgets documented separately from editor resource usage |\n| H01 | D1 | Create pinned UE5 **C++** repository/project, Git LFS, UE ignore patterns and portable README. Record UE/SDK/toolchain versions and baseline PC/GPU. | None | 1 d | Editor project opens on Windows; clean clone builds; `Binaries/`, `DerivedDataCache/`, `Intermediate/`, `Saved/` excluded |
 | H02 | D1–D2 | Implement `FGeoCoordinate`, `FECEFVectorMeters`, `FENUBasis` and geodetic↔ECEF↔ENU transforms using modern Earth reference ellipsoid (metric), including WGS84 datum references. | H01 | 1.5 d | Automation tests cover ±180°, poles, equator, height and round-trip precision without catastrophic centimeter error |
 | H03 | D2–D3 | Define `FPlanetSnapshotKey`, `FGeoTileId(face,level,x,y)`, `FGeoQuery`, `FGeoSample`, `IPlanetGeographyProvider` and provenance enums; add source/versioned manifest schema. | H02 | 1 d | API compiles, serializes versioned metadata, rejects invalid coordinates/source ages |
 | H04 | D3–D4 | Implement **deterministic synthetic** provider and small no-data fallback; produce geospatial golden fixture vs existing JS model for math checks (but **not** as claimed real geography). | H03 | 1 d | Same snapshot/lat/lon generates bitwise-stable tile IDs and sampled heights within numerical tolerance |
@@ -29,7 +31,7 @@ Not in sprint: realistic animals, animated people, PCG biomes, full historical r
 
 ## 10-day execution sequence
 
-- **Day 1:** H01 toolchain + repository + first test. Preserve web app; prepare one baseline Windows packaged empty build.
+- **Day 1:** H01 + P01 resource-light engine settings, hardware inspection and baseline metrics + repository + first test. Preserve web app; prepare one baseline Windows packaged empty build.
 - **Day 2:** H02 geodesy (double precision, ENU) with automated round trips at equator, high latitudes and dateline.
 - **Day 3:** H03 provider contract + H04 deterministic fixture; record test numbers.
 - **Day 4:** H04 complete + H05 begin NOAA local raster extraction pipeline.
