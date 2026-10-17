@@ -1,6 +1,6 @@
 # ChatGPT — Earth Evo Project Memory
 
-Owner: **chatgpt** · Scope: `tihloh/earth-evo` · Last checkpoint: **2026-10-16**.
+Owner: **chatgpt** · Scope: `tihloh/earth-evo` · Last checkpoint: **2026-10-17**.
 
 ## Active user goals
 
@@ -17,6 +17,8 @@ Current source-backed milestone: **v0.8.1 corrected water continuity, stitched t
 - [v0.6 species chronology, weather, landforms and terrain LOD — 2026-10-16](chunks/memory-0002.md)
 - [v0.8 continuous wheel zoom, browser crash root cause and LOD — 2026-10-16](chunks/memory-0003.md)
 - [v0.8.1 screen-recording diagnosis, continuous ocean and LOD stitching — 2026-10-16](chunks/memory-0004.md)
+
+- [Unreal Engine 5 desktop migration architecture plan — 2026-10-17](chunks/memory-0005.md)
 
 ## References
 - [Shared verified facts](../../shared/MEMORY.md)
