@@ -2,8 +2,18 @@
 
 **Status:** Ready for development; **not started**.  
 **Timebox:** 10 working days / 2 weeks (experienced Unreal C++ developer; adjust after machine/plugin inspection).  
-**Strategy:** Dedicated UE5 Windows desktop codebase, new `earth-evo-ue5` repo **proposed, not yet created**. Preserve the browser repo intact.  
+**Strategy:** Dedicated UE5 Windows desktop codebase, dedicated [earth-evo-ue5](https://github.com/tihloh/earth-evo-ue5) repository **already created for planning; Unreal C++ project/build not yet created**. Preserve the browser repo intact.  
 **Reference:** [Hybrid Architecture H-001](UE5-HYBRID-ARCHITECTURE.md) · [Dota 2–class performance contract P-001](UE5-PERFORMANCE-BUDGET.md) · [Migration Plan](UNREAL-MIGRATION-PLAN.md).
+
+## Sprint 00 blocker: development storage and build machine
+
+Confirmed hardware: **i5-9400, 32 GB DDR4, RX 5500 XT 4 GB, only ~10 GB free SSD space**. Unreal Engine, Visual Studio and intermediate/shader caches **cannot be installed and built on the current free capacity**. H01 Windows editor/build demo is blocked until one of these paths is chosen:
+
+- Add/use a separate **500 GB+ SSD** and reserve enough headroom for system-drive caches; perform local builds.
+- Provision a **Windows cloud/remote UE5 builder** (starting sizing 8+ vCPU, ~32 GB RAM, ~200 GB+ SSD; confirm exact editor/toolchain requirements), connect as GitHub Actions self-hosted runner; download compact packaged demo. No builder/runner exists yet. This costs money; obtain user approval.
+- Ordinary GitHub-hosted Windows Actions runner for the private repo has only **14 GB SSD / 8 GB RAM / 2 vCPU** and no Unreal engine; use it for small static/maths tests, **not UE5 C++ cooking/packaging**.
+
+**No full UE sprint can be declared started or finished until the machine/storage choice is resolved.** Meanwhile source manifests, geodesy tests and repo tooling can be written on GitHub. H01 should explicitly record chosen build method, installation paths, caches and package download location.
 
 ## Sprint objective
 
