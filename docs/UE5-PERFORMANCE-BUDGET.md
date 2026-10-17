@@ -59,6 +59,10 @@ Add a new task **P01 (day 1)**: create default Performance preset, hardware/VRAM
 
 Extend **H07–H09**: always profile coarse globe, coarse/fine terrain transition and local tile, even with placeholders. Reject “looks realistic” demos that lack CPU/GPU/RAM evidence. Build configurations should be reproducible and lower-end GPU settings run by default.
 
+## Confirmed development capacity constraint — 10 GB free SSD
+
+The reference PC's SSD currently has **approximately 10 GB free**, making **local UE5 editor/compiler installation and builds infeasible without more storage**. This does not change game performance goals or guarantee the packaged desktop game fits on that drive. Sprint 01 must use a larger **additional/external SSD** for local UE development or a Windows remote build runner with sufficient engine/toolchain capacity. The private repository's default GitHub-hosted Windows runner (~14 GB SSD, 8 GB RAM, 2 vCPU, no UE engine installed) is unsuitable for full UE5 builds; reserve it for lightweight tests. Cloud builds require an actual configured Unreal-capable builder, costs and credentials approved by the user. Track build-machine disk usage **separately** from packaged-game RAM/VRAM/FPS and final install footprint.
+
 ## Known unknowns
 
 - **VRAM capacity confirmed: RX 5500 XT 4 GB.** Verify exact driver version, shared-memory reporting and actual dedicated-memory use on the development PC.
