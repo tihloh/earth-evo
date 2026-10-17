@@ -20,6 +20,7 @@ Current source-backed milestone: **v0.8.1 corrected water continuity, stitched t
 
 - [Unreal Engine 5 desktop migration architecture plan — 2026-10-17](chunks/memory-0005.md)
 - [Finalized hybrid Earth geology architecture and UE5 Sprint 01 — 2026-10-17](chunks/memory-0006.md)
+- [UE5 Dota 2–class performance targets and new repository setup — 2026-10-17](chunks/memory-0007.md)
 
 ## References
 - [Shared verified facts](../../shared/MEMORY.md)
